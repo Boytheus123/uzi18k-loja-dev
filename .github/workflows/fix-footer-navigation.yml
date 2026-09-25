@@ -1,6 +1,9 @@
 name: Fix footer navigation DEV
 
 on:
+  push:
+    paths:
+      - ".github/workflows/fix-footer-navigation.yml"
   workflow_dispatch:
 
 permissions:
@@ -20,7 +23,6 @@ jobs:
           p = Path("index.html")
           s = p.read_text(encoding="utf-8")
 
-          # Keep the intended footer labels/targets regardless of the current footer variant.
           s = s.replace(
               '<a href="#mais-vendidos">Mais vendidos</a><a href="#correntes">Correntes</a><a href="#pulseiras">Pulseiras</a><a href="#">Kits</a>',
               '<a href="#mais-vendidos">Mais vendidos</a><a href="#correntes">Correntes</a><a href="#pulseiras">Pulseiras</a><a href="#pingentes">Pingentes</a>'
