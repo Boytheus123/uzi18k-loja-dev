@@ -34,6 +34,25 @@ jobs:
               s=s.replace('</body>',fix+'</body>')
               p.write_text(s,encoding="utf-8")
           PY
+
+          marker2='<style id="uzi-v126-product-cart-layer-fix">'
+          if marker2 not in s:
+              fix2='''<style id="uzi-v126-product-cart-layer-fix">
+/* V126 — o carrinho precisa ficar acima da página de produto */
+.v75-product-page:target{
+  z-index:2147483000 !important;
+}
+#uziCartDrawer,
+#uziCartDrawer.is-open{
+  z-index:2147483647 !important;
+}
+#uziGlobalProductCart{
+  z-index:2147483646 !important;
+}
+</style>
+'''
+              s=s.replace('</body>',fix2+'</body>')
+              p.write_text(s,encoding="utf-8")
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
