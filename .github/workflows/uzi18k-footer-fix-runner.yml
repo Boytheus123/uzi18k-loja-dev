@@ -1,0 +1,34 @@
+name: UZI18K one-time footer fix
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix footer and remove temporary workflows
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+          old1 = '<a href="#pulseiras">Pulseiras</a><a href="#">Kits</a>'
+          new1 = '<a href="#pulseiras">Pulseiras</a><a href="#pingentes">Pingentes</a>'
+          old2 = '<a href="#manifesto">Sobre a marca</a><a href="https://www.instagram.com/uzi.18k/" rel="noopener noreferrer" target="_blank">Instagram @uzi.18k</a><a href="#">Política de privacidade</a><a href="#">Termos</a>'
+          new2 = '<a href="#manifesto">Sobre a marca</a><a href="#feedbacks">Feedbacks</a><a href="https://www.instagram.com/uzi.18k/" rel="noopener noreferrer" target="_blank">Instagram @uzi.18k</a><a href="#">Política de privacidade</a><a href="#">Termos</a>'
+          if old1 not in s or old2 not in s:
+              raise SystemExit("Trechos esperados do footer não encontrados; nada foi alterado.")
+          s = s.replace(old1, new1).replace(old2, new2)
+          p.write_text(s, encoding="utf-8")
+          PY
+          rm -f .github/workflows/uzi18k-footer-fix.yml .github/workflows/uzi18k-footer-fix-runner.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows
+          git commit -m "fix: corrigir links do footer no DEV"
+          git push
