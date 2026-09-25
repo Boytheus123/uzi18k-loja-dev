@@ -1,0 +1,56 @@
+name: Fix product cart click DEV
+
+on:
+  push:
+    paths:
+      - ".github/workflows/fix-product-cart.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch cart button on product pages
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("index.html")
+          s=p.read_text(encoding="utf-8")
+          marker='<script id="uzi-v124-product-cart-click-fix">'
+          if marker not in s:
+              fix=r'''<script id="uzi-v124-product-cart-click-fix">
+(function(){
+  function forceOpenCart(e){
+    var el=e.target.closest && e.target.closest('#uziGlobalProductCart, #uziHeaderCartButton, .uzi-cart-trigger');
+    if(!el) return;
+    if(el.closest('#uziCartDrawer')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if(typeof window.uzi18kOpenCart==='function'){
+      window.uzi18kOpenCart();
+    }else{
+      var d=document.getElementById('uziCartDrawer');
+      if(d){d.classList.add('is-open');d.setAttribute('aria-hidden','false');document.documentElement.classList.add('uzi-cart-lock');}
+    }
+  }
+  document.addEventListener('click',forceOpenCart,true);
+  document.addEventListener('pointerup',function(e){
+    if(e.pointerType==='mouse') return;
+    var el=e.target.closest && e.target.closest('#uziGlobalProductCart, #uziHeaderCartButton, .uzi-cart-trigger');
+    if(!el || el.closest('#uziCartDrawer')) return;
+    if(typeof window.uzi18kOpenCart==='function') window.uzi18kOpenCart();
+  },true);
+})();
+</script>
+'''
+              s=s.replace('</body>',fix+'</body>')
+              p.write_text(s,encoding="utf-8")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || (git commit -m "fix: garantir abertura do carrinho nas paginas de produto" && git push)
