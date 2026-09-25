@@ -1,0 +1,121 @@
+name: UZI18K - páginas institucionais
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-pages:
+    if: "!contains(github.event.head_commit.message, '[skip policy sync]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Criar páginas e atualizar links
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          base = Path('.')
+
+          style = r'''
+          :root{--gold:#d4af37;--bg:#050505;--card:#101010;--text:#f5f5f5;--muted:#aaa;--border:#242424}
+          *{box-sizing:border-box}
+          body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.65}
+          .wrap{max-width:900px;margin:0 auto;padding:48px 22px 70px}
+          .brand{color:var(--gold);font-weight:800;letter-spacing:3px;font-size:14px;margin-bottom:35px}
+          h1{font-size:34px;line-height:1.15;margin:0 0 14px}
+          h2{font-size:20px;margin:34px 0 10px;color:var(--gold)}
+          p,li{color:#ddd}
+          .intro{color:var(--muted);margin-bottom:30px}
+          .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin:16px 0}
+          .highlight{border-color:#4b3d16;background:linear-gradient(180deg,#15120a,#101010)}
+          .gold{color:var(--gold);font-weight:700}
+          a{color:var(--gold);text-decoration:none}
+          .back{display:inline-block;margin-top:30px;padding:11px 16px;border:1px solid var(--border);border-radius:10px}
+          ul{padding-left:22px}
+          @media(max-width:600px){.wrap{padding:32px 17px 55px}h1{font-size:29px}}
+          '''
+
+          def page(title, intro, body):
+              return f'''<!doctype html>
+          <html lang="pt-BR">
+          <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} | UZI18K</title><style>{style}</style></head>
+          <body><main class="wrap"><div class="brand">UZI18K</div><h1>{title}</h1><p class="intro">{intro}</p>{body}<a class="back" href="index.html">← Voltar para a loja</a></main></body></html>'''
+
+          faq_body = '''
+          <section class="card"><h2>💳 Quais são as formas de pagamento?</h2><p>O pagamento é realizado pelas opções disponíveis no checkout da loja.</p></section>
+          <section class="card"><h2>📦 Como funciona o envio?</h2><p>Após a confirmação do pagamento, o pedido é preparado e enviado. O prazo e o valor do frete são calculados de acordo com o CEP.</p></section>
+          <section class="card"><h2>📏 Como escolher o tamanho da peça?</h2><p>As medidas disponíveis ficam informadas na página de cada produto. Em peças com opções de tamanho, selecione a medida desejada antes de adicionar ao carrinho.</p></section>
+          <section class="card highlight"><h2>✨ As peças são de ouro?</h2><p>Nossas peças possuem <span class="gold">banho de ouro 18K + verniz de proteção + base de paládio</span>, proporcionando acabamento sofisticado e maior proteção à peça.</p></section>
+          <section class="card"><h2>🧴 Como cuidar da minha peça?</h2><p>Evite contato direto com perfumes, cremes e outros produtos químicos. Ao utilizar perfumes ou cremes, <strong>retire a peça, aplique os produtos e aguarde secar completamente antes de colocá-la novamente</strong>. Também recomendamos evitar contato com água do mar, piscina e produtos químicos.</p></section>
+          <section class="card"><h2>🔄 Posso trocar ou devolver meu pedido?</h2><p>Sim. Consulte nossa página de <a href="trocas-e-devolucoes.html">Trocas e devoluções</a> para conhecer as condições e os prazos.</p></section>
+          <section class="card"><h2>🛡️ As peças possuem garantia?</h2><p>Sim. A UZI18K oferece <span class="gold">garantia de 1 ano para defeitos relacionados ao banho de ouro 18K</span>, conforme as condições descritas em nossa Política de Garantia.</p><p><a href="garantia.html">Ver Política de Garantia →</a></p></section>
+          <section class="card"><h2>📩 Como solicitar a garantia?</h2><p>Entre em contato com a UZI18K pelo canal de atendimento disponível no site.</p></section>
+          '''
+          (base/'duvidas-frequentes.html').write_text(page('Dúvidas frequentes','As principais informações para comprar suas peças UZI18K com segurança.',faq_body),encoding='utf-8')
+
+          garantia_body = '''
+          <section class="card highlight"><h2>✨ Banho de ouro 18K</h2><p>Na UZI18K, nossas peças possuem <span class="gold">banho de ouro 18K</span>, combinado com <span class="gold">verniz de proteção e base de paládio</span>.</p><p>Oferecemos <strong>1 ano de garantia para defeitos relacionados ao banho de ouro 18K</strong>, conforme as condições desta política.</p></section>
+          <section class="card"><h2>✨ O que a garantia cobre?</h2><p>A garantia cobre <strong>defeitos relacionados ao banho de ouro 18K da peça</strong>, dentro do período de 1 ano a partir da data de recebimento do pedido.</p></section>
+          <section class="card"><h2>⚠️ O que a garantia não cobre?</h2><p>A garantia não cobre danos decorrentes de <strong>mau uso, acidentes ou rompimento da peça</strong>. Também não são considerados defeitos de garantia danos provocados por uso inadequado ou contato excessivo com produtos que possam comprometer a peça.</p></section>
+          <section class="card"><h2>📅 Prazo da garantia</h2><p>A garantia é válida por <strong>1 ano</strong>, contado a partir da data de recebimento do produto.</p></section>
+          <section class="card"><h2>📩 Como solicitar a garantia?</h2><p>Entre em contato com a UZI18K pelo nosso canal de atendimento e informe:</p><ul><li>Nome do comprador;</li><li>Número do pedido;</li><li>Produto;</li><li>Descrição do problema;</li><li>Fotos da peça para avaliação inicial.</li></ul></section>
+          <section class="card"><h2>🔎 Processo de análise</h2><p>Após o recebimento das informações, a peça poderá passar por uma <strong>análise para verificar a causa do problema</strong> e confirmar se a ocorrência está dentro das condições da garantia.</p><p>Após a análise, nossa equipe informará o resultado e os próximos passos para o atendimento.</p></section>
+          <section class="card highlight"><p class="gold">✨ BANHO DE OURO 18K<br>1 ANO DE GARANTIA PARA O BANHO DE OURO 18K</p></section>
+          '''
+          (base/'garantia.html').write_text(page('Garantia UZI18K','Conheça as condições da nossa garantia para o banho de ouro 18K.',garantia_body),encoding='utf-8')
+
+          trocas_body = '''
+          <section class="card highlight"><h2>🔄 Arrependimento ou Desistência — Compras Online</h2><p>Nas compras realizadas pela internet, o consumidor possui o <strong>direito de arrependimento</strong>, conforme o Artigo 49 do Código de Defesa do Consumidor (CDC).</p><p>O prazo para solicitar a desistência é de <strong>até 7 dias corridos, contados a partir da data de recebimento do produto</strong>.</p><p>Nos termos do Art. 49, exercido o direito de arrependimento, os valores pagos devem ser devolvidos conforme a legislação aplicável.</p></section>
+          <section class="card"><h2>📦 Como solicitar uma devolução?</h2><p>Entre em contato com a UZI18K pelo nosso canal de atendimento informando:</p><ul><li>Nome do comprador;</li><li>Número do pedido;</li><li>Motivo da solicitação;</li><li>Produto que deseja devolver.</li></ul><p>Nossa equipe fornecerá as orientações necessárias para o procedimento.</p></section>
+          <section class="card"><h2>⚠️ Importante</h2><p>Para facilitar o processo, recomendamos que o produto seja devolvido nas condições em que foi recebido, acompanhado de sua embalagem e acessórios, quando aplicável.</p><p>Esta página não limita os direitos previstos na legislação de defesa do consumidor.</p></section>
+          '''
+          (base/'trocas-e-devolucoes.html').write_text(page('Trocas e devoluções','Confira as orientações da UZI18K para devoluções e trocas.',trocas_body),encoding='utf-8')
+
+          p = base/'index.html'
+          html = p.read_text(encoding='utf-8', errors='ignore')
+
+          # Redirect existing footer links to the new institutional pages when their labels already exist.
+          patterns = [
+              (r'(<a\b[^>]*href=["\'][^"\']*["\'][^>]*>\s*)Garantia(\s*</a>)', r'\1<a href="garantia.html" style="color:inherit;text-decoration:none">Garantia</a>\2'),
+          ]
+          # Safer direct href replacement for anchors whose visible text is Garantia/Trocas e devoluções.
+          def fix_link(match):
+              attrs, label = match.group(1), match.group(2)
+              target = 'garantia.html' if label.strip().lower() == 'garantia' else 'trocas-e-devolucoes.html'
+              attrs = re.sub(r'href=(["\'])[^"\']*\1', f'href="{target}"', attrs, count=1, flags=re.I)
+              return '<a' + attrs + '>' + label + '</a>'
+
+          html = re.sub(r'<a(\s+[^>]*href=(?:"[^"]*"|\'[^\']*\')[^>]*)>(\s*(?:Garantia|Trocas e devoluções)\s*)</a>', fix_link, html, flags=re.I)
+
+          # Replace the two obsolete footer labels only when the exact labels exist,
+          # preserving the rest of the page.
+          html = re.sub(r'(<a\s+[^>]*href=(?:"[^"]*"|\'[^\']*\')[^>]*>\s*)Política de privacidade(\s*</a>)',
+                        r'\1Dúvidas frequentes\2', html, flags=re.I)
+          html = re.sub(r'(<a\s+[^>]*href=(?:"[^"]*"|\'[^\']*\')[^>]*>\s*)Termos(?: e condições)?(\s*</a>)',
+                        r'\1Trocas e devoluções\2', html, flags=re.I)
+
+          # Point the two replaced labels to their corresponding pages.
+          html = re.sub(r'(<a\s+[^>]*href=)(["\'])[^"\']*(\2)([^>]*>\s*Dúvidas frequentes\s*</a>)',
+                        r'\1"duvidas-frequentes.html"\3\4', html, flags=re.I)
+          html = re.sub(r'(<a\s+[^>]*href=)(["\'])[^"\']*(\2)([^>]*>\s*Trocas e devoluções\s*</a>)',
+                        r'\1"trocas-e-devolucoes.html"\3\4', html, flags=re.I)
+
+          p.write_text(html,encoding='utf-8')
+          PY
+
+      - name: Commit e deploy
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html duvidas-frequentes.html garantia.html trocas-e-devolucoes.html
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: add FAQ, warranty and returns pages [skip policy sync]"
+          git push
