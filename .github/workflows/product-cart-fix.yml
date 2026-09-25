@@ -1,6 +1,7 @@
-name: Product cart fix DEV
+name: UZI18K product cart fix
 
-on: [push]
+on:
+  push:
 
 permissions:
   contents: write
@@ -10,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fix cart
+      - name: Fix product cart
         run: |
           python - <<'PY'
           from pathlib import Path
