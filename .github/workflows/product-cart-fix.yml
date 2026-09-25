@@ -11,10 +11,95 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply cart layer fix
+
+      - name: Apply cart and institutional pages
         run: |
-          python -c 'from pathlib import Path; p=Path("index.html"); s=p.read_text(encoding="utf-8"); marker="uzi-v126-product-cart-layer-fix"; fix="<style id=\"uzi-v126-product-cart-layer-fix\">.v75-product-page:target{z-index:2147483000 !important;}#uziCartDrawer,#uziCartDrawer.is-open{z-index:2147483647 !important;}#uziGlobalProductCart{z-index:2147483646 !important;}</style>"; p.write_text(s.replace("</body>",fix+"</body>"),encoding="utf-8") if marker not in s else None'
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+
+          cart_marker = "uzi-v126-product-cart-layer-fix"
+          cart_fix = '<style id="uzi-v126-product-cart-layer-fix">.v75-product-page:target{z-index:2147483000 !important;}#uziCartDrawer,#uziCartDrawer.is-open{z-index:2147483647 !important;}#uziGlobalProductCart{z-index:2147483646 !important;}</style>'
+          if cart_marker not in s:
+              s = s.replace("</body>", cart_fix + "</body>")
+
+          style = """<style>
+          :root{--gold:#d4af37;--bg:#050505;--card:#101010;--text:#f5f5f5;--muted:#aaa;--border:#242424}
+          *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.65}
+          a{color:var(--gold);text-decoration:none}.wrap{max-width:900px;margin:0 auto;padding:48px 22px 70px}
+          .brand{color:var(--gold);font-weight:800;letter-spacing:3px;font-size:14px;margin-bottom:35px}
+          h1{font-size:34px;line-height:1.15;margin:0 0 14px}h2{font-size:20px;margin:34px 0 10px;color:var(--gold)}
+          p,li{color:#ddd}.intro{color:var(--muted);margin-bottom:30px}.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin:16px 0}
+          .highlight{border-color:#4b3d16;background:linear-gradient(180deg,#15120a,#101010)}.gold{color:var(--gold);font-weight:700}
+          .back{display:inline-block;margin-top:30px;padding:11px 16px;border:1px solid var(--border);border-radius:10px}
+          ul{padding-left:22px}@media(max-width:600px){.wrap{padding:32px 17px 55px}h1{font-size:29px}}
+          </style>"""
+
+          def page(title, intro, body):
+              return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+' | UZI18K</title>'+style+'</head><body><main class="wrap"><div class="brand">UZI18K</div><h1>'+title+'</h1><p class="intro">'+intro+'</p>'+body+'<a class="back" href="index.html">← Voltar para a loja</a></main></body></html>'
+
+          faq = '''
+          <section class="card"><h2>💳 Quais são as formas de pagamento?</h2><p>O pagamento é realizado pelas opções disponíveis no checkout da loja.</p></section>
+          <section class="card"><h2>📦 Como funciona o envio?</h2><p>Após a confirmação do pagamento, o pedido é preparado e enviado. O prazo e o valor do frete são calculados de acordo com o CEP.</p></section>
+          <section class="card"><h2>📏 Como escolher o tamanho da peça?</h2><p>As medidas disponíveis ficam informadas na página de cada produto. Em peças com opções de tamanho, selecione a medida desejada antes de adicionar ao carrinho.</p></section>
+          <section class="card highlight"><h2>✨ As peças são de ouro?</h2><p>Nossas peças possuem <span class="gold">banho de ouro 18K + verniz de proteção + base de paládio</span>, proporcionando acabamento sofisticado e maior proteção à peça.</p></section>
+          <section class="card"><h2>🧴 Como cuidar da minha peça?</h2><p>Evite contato direto com perfumes, cremes e outros produtos químicos. Ao utilizar perfumes ou cremes, <strong>retire a peça, aplique os produtos e aguarde secar completamente antes de colocá-la novamente</strong>. Também recomendamos evitar contato com água do mar, piscina e produtos químicos.</p></section>
+          <section class="card"><h2>🔄 Posso trocar ou devolver meu pedido?</h2><p>Sim. Consulte nossa página de <a href="trocas-e-devolucoes.html">Trocas e devoluções</a> para conhecer as condições e os prazos.</p></section>
+          <section class="card"><h2>🛡️ As peças possuem garantia?</h2><p>Sim. A UZI18K oferece <span class="gold">garantia de 1 ano para defeitos relacionados ao banho de ouro 18K</span>, conforme as condições descritas em nossa Política de Garantia.</p><p><a href="garantia.html">Ver Política de Garantia →</a></p></section>
+          <section class="card"><h2>📩 Como solicitar a garantia?</h2><p>Entre em contato com a UZI18K pelo canal de atendimento disponível no site.</p></section>
+          '''
+
+          garantia = '''
+          <section class="card highlight"><h2>✨ Banho de ouro 18K</h2><p>Na UZI18K, nossas peças possuem <span class="gold">banho de ouro 18K</span>, combinado com <span class="gold">verniz de proteção e base de paládio</span>.</p><p>Oferecemos <strong>1 ano de garantia para defeitos relacionados ao banho de ouro 18K</strong>, conforme as condições desta política.</p></section>
+          <section class="card"><h2>✨ O que a garantia cobre?</h2><p>A garantia cobre <strong>defeitos relacionados ao banho de ouro 18K da peça</strong>, dentro do período de 1 ano a partir da data de recebimento do pedido.</p></section>
+          <section class="card"><h2>⚠️ O que a garantia não cobre?</h2><p>A garantia não cobre danos decorrentes de <strong>mau uso, acidentes ou rompimento da peça</strong>. Também não são considerados defeitos de garantia danos provocados por uso inadequado ou contato excessivo com produtos que possam comprometer a peça.</p></section>
+          <section class="card"><h2>📅 Prazo da garantia</h2><p>A garantia é válida por <strong>1 ano</strong>, contado a partir da data de recebimento do produto.</p></section>
+          <section class="card"><h2>📩 Como solicitar a garantia?</h2><p>Entre em contato com a UZI18K pelo nosso canal de atendimento e informe:</p><ul><li>Nome do comprador;</li><li>Número do pedido;</li><li>Produto;</li><li>Descrição do problema;</li><li>Fotos da peça para avaliação inicial.</li></ul></section>
+          <section class="card"><h2>🔎 Processo de análise</h2><p>Após o recebimento das informações, a peça poderá passar por uma <strong>análise para verificar a causa do problema</strong> e confirmar se a ocorrência está dentro das condições da garantia.</p><p>Após a análise, nossa equipe informará o resultado e os próximos passos para o atendimento.</p></section>
+          <section class="card highlight"><p class="gold">✨ BANHO DE OURO 18K<br>1 ANO DE GARANTIA PARA O BANHO DE OURO 18K</p></section>
+          '''
+
+          trocas = '''
+          <section class="card highlight"><h2>🔄 Arrependimento ou Desistência — Compras Online</h2><p>Nas compras realizadas pela internet, o consumidor possui o <strong>direito de arrependimento</strong>, conforme o Artigo 49 do Código de Defesa do Consumidor (CDC).</p><p>O prazo para solicitar a desistência é de <strong>até 7 dias corridos, contados a partir da data de recebimento do produto</strong>.</p><p>Exercido o direito de arrependimento, os valores pagos devem ser devolvidos conforme a legislação aplicável.</p></section>
+          <section class="card"><h2>📦 Como solicitar uma devolução?</h2><p>Entre em contato com a UZI18K pelo nosso canal de atendimento informando:</p><ul><li>Nome do comprador;</li><li>Número do pedido;</li><li>Motivo da solicitação;</li><li>Produto que deseja devolver.</li></ul><p>Nossa equipe fornecerá as orientações necessárias para o procedimento.</p></section>
+          <section class="card"><h2>⚠️ Importante</h2><p>Para facilitar o processo, recomendamos que o produto seja devolvido nas condições em que foi recebido, acompanhado de sua embalagem e acessórios, quando aplicável.</p><p>Esta página não limita os direitos previstos na legislação de defesa do consumidor.</p></section>
+          '''
+
+          Path("duvidas-frequentes.html").write_text(page("Dúvidas frequentes","As principais informações para comprar suas peças UZI18K com segurança.",faq),encoding="utf-8")
+          Path("garantia.html").write_text(page("Garantia UZI18K","Conheça as condições da nossa garantia para o banho de ouro 18K.",garantia),encoding="utf-8")
+          Path("trocas-e-devolucoes.html").write_text(page("Trocas e devoluções","Confira as orientações da UZI18K para devoluções e trocas.",trocas),encoding="utf-8")
+
+          # Atualiza links existentes sem alterar o restante da loja.
+          def link_to(label, target):
+              nonlocal s
+              pat = r'(<a\b[^>]*href=(["\'])[^"\']*\2[^>]*>)\s*'+re.escape(label)+r'\s*(</a>)'
+              s = re.sub(pat, lambda m: re.sub(r'href=(["\'])[^"\']*\1', 'href="'+target+'"', m.group(1), count=1) + label + m.group(3), s, flags=re.I)
+
+          link_to("Garantia","garantia.html")
+          link_to("Trocas e devoluções","trocas-e-devolucoes.html")
+
+          # Substitui os antigos links do rodapé pelos novos conteúdos.
+          def replace_label(old, new, target):
+              global s
+              pat = r'(<a\b[^>]*href=(["\'])[^"\']*\2[^>]*>)\s*'+re.escape(old)+r'\s*(</a>)'
+              def repl(m):
+                  attrs = re.sub(r'href=(["\'])[^"\']*\1', 'href="'+target+'"', m.group(1), count=1)
+                  return attrs + new + m.group(3)
+              return re.sub(pat, repl, s, flags=re.I)
+
+          s = replace_label("Política de privacidade","Dúvidas frequentes","duvidas-frequentes.html")
+          s = replace_label("Termos e condições","Trocas e devoluções","trocas-e-devolucoes.html")
+          s = replace_label("Termos","Trocas e devoluções","trocas-e-devolucoes.html")
+
+          p.write_text(s,encoding="utf-8")
+          PY
+
+      - name: Commit
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git diff --cached --quiet || (git commit -m "fix: camada do carrinho no produto" && git push)
+          git add index.html duvidas-frequentes.html garantia.html trocas-e-devolucoes.html
+          git diff --cached --quiet || (git commit -m "feat: add FAQ, warranty and returns pages" && git push)
