@@ -74,7 +74,6 @@ jobs:
 
           # Atualiza links existentes sem alterar o restante da loja.
           def link_to(label, target):
-              nonlocal s
               pat = r'(<a\b[^>]*href=(["\'])[^"\']*\2[^>]*>)\s*'+re.escape(label)+r'\s*(</a>)'
               s = re.sub(pat, lambda m: re.sub(r'href=(["\'])[^"\']*\1', 'href="'+target+'"', m.group(1), count=1) + label + m.group(3), s, flags=re.I)
 
