@@ -4363,6 +4363,28 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   },{capture:true,passive:true});
 })();
 </script>
+<script id="uzi-footer-navigation-fix">
+(function(){
+  function goFooterTarget(e){
+    var link=e.target.closest && e.target.closest('.footer a[href^="#"]');
+    if(!link) return;
+    var href=link.getAttribute('href')||'';
+    if(href==='#') return;
+    var id=href.slice(1);
+    var target=document.getElementById(id);
+    if(!target) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var header=document.querySelector('.header');
+    var topbar=document.querySelector('.topbar');
+    var offset=(header?header.getBoundingClientRect().height:0)+(topbar?topbar.getBoundingClientRect().height:0)+12;
+    var top=target.getBoundingClientRect().top+(window.pageYOffset||window.scrollY||0)-offset;
+    window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+    try{history.pushState({uzi18kFooter:id},'', '#'+id);}catch(_){}
+  }
+  document.addEventListener('click',goFooterTarget,true);
+})();
+</script>
 </body>
 
 
