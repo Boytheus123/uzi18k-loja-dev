@@ -11,50 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fix product cart
+      - name: Apply cart layer fix
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path("index.html")
-          s=p.read_text(encoding="utf-8")
-
-          marker='<script id="uzi-v124-product-cart-click-fix">'
+          p = Path("index.html")
+          s = p.read_text(encoding="utf-8")
+          marker = 'uzi-v126-product-cart-layer-fix'
           if marker not in s:
-              fix='''<script id="uzi-v124-product-cart-click-fix">
-(function(){
-  document.addEventListener('click',function(e){
-    var el=e.target.closest&&e.target.closest('#uziGlobalProductCart,#uziHeaderCartButton,.uzi-cart-trigger');
-    if(!el||el.closest('#uziCartDrawer')) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    if(typeof window.uzi18kOpenCart==='function') window.uzi18kOpenCart();
-  },true);
-})();
-</script>
-'''
-              s=s.replace('</body>',fix+'</body>')
-
-          marker2='<style id="uzi-v126-product-cart-layer-fix">'
-          if marker2 not in s:
-              fix2='''<style id="uzi-v126-product-cart-layer-fix">
-/* V126 — o carrinho precisa ficar acima da página de produto */
-.v75-product-page:target{
-  z-index:2147483000 !important;
-}
-#uziCartDrawer,
-#uziCartDrawer.is-open{
-  z-index:2147483647 !important;
-}
-#uziGlobalProductCart{
-  z-index:2147483646 !important;
-}
-</style>
-'''
-              s=s.replace('</body>',fix2+'</body>')
-
-          p.write_text(s,encoding="utf-8")
+              fix = """<style id="uzi-v126-product-cart-layer-fix">
+.v75-product-page:target{z-index:2147483000 !important;}
+#uziCartDrawer,#uziCartDrawer.is-open{z-index:2147483647 !important;}
+#uziGlobalProductCart{z-index:2147483646 !important;}
+</style>"""
+              p.write_text(s.replace("</body>", fix + "</body>"), encoding="utf-8")
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git diff --cached --quiet || (git commit -m "fix: garantir abertura do carrinho no produto" && git push)
+          git diff --cached --quiet || (git commit -m "fix: camada do carrinho no produto" && git push)
