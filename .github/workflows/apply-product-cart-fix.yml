@@ -1,0 +1,41 @@
+name: Apply product cart fix DEV
+
+on:
+  push:
+    paths:
+      - ".github/workflows/apply-product-cart-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Append cart fix
+        run: |
+          if ! grep -q 'uzi-v124-product-cart-click-fix' index.html; then
+            sed -i '$d' index.html
+            cat >> index.html <<'EOF'
+<script id="uzi-v124-product-cart-click-fix">
+(function(){
+  function openCartFromButton(e){
+    var el=e.target.closest&&e.target.closest('#uziGlobalProductCart,#uziHeaderCartButton,.uzi-cart-trigger');
+    if(!el||el.closest('#uziCartDrawer'))return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if(typeof window.uzi18kOpenCart==='function') window.uzi18kOpenCart();
+  }
+  document.addEventListener('click',openCartFromButton,true);
+})();
+</script>
+</body>
+EOF
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "fix: garantir abertura do carrinho no produto"
+          git push
