@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UZI18K — Estoque</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #050505;
+      color: #fff;
+    }
+
+    .gold {
+      color: #d4af37;
+    }
+
+    .container {
+      width: min(1100px, 94%);
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid #292929;
+      padding: 22px 0;
+      margin-bottom: 30px;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 25px;
+      letter-spacing: 1px;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-weight: bold;
+    }
+
+    .btn-gold {
+      background: #d4af37;
+      color: #000;
+    }
+
+    .btn-dark {
+      background: #191919;
+      color: #fff;
+      border: 1px solid #333;
+    }
+
+    .login-box,
+    .panel {
+      background: #101010;
+      border: 1px solid #292929;
+      border-radius: 14px;
+      padding: 25px;
+    }
+
+    .login-box {
+      max-width: 420px;
+      margin: 80px auto;
+    }
+
+    .login-box h2 {
+      margin-top: 0;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 13px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #080808;
+      color: #fff;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #d4af37;
+    }
+
+    label {
+      font-size: 13px;
+      color: #bbb;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: #101010;
+      border: 1px solid #292929;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .inventory-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .item {
+      background: #0c0c0c;
+      border: 1px solid #292929;
+      border-radius: 12px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .item-name {
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .item-info {
+      color: #999;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .stock-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stock-input {
+      width: 80px;
+      margin: 0;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .available {
+      background: #123c20;
+      color: #62d889;
+    }
+
+    .low {
+      background: #4b3510;
+      color: #f3c65b;
+    }
+
+    .out {
+      background: #471616;
+      color: #ff7070;
+    }
+
+    .add-form {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr 120px auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .add-form input {
+      margin-bottom: 0;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .error {
+      display: block;
+      background: #421919;
+      color: #ff8b8b;
+    }
+
+    .success {
+      display: block;
+      background: #14391f;
+      color: #7ee39a;
+    }
+
+    @media (max-width: 800px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .item {
+        grid-template-columns: 1fr;
+      }
+
+      .add-form {
+        grid-template-columns: 1fr;
+      }
+
+      .stock-area {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGIN -->
+  <div id="loginScreen" class="container">
+    <div class="login-box">
+      <h2>UZI<span class="gold">18K</span></h2>
+      <p style="color:#999;">Painel de controle de estoque</p>
+
+      <div id="loginMessage" class="message"></div>
+
+      <label>E-mail</label>
+      <input id="email" type="email" placeholder="seu@email.com">
+
+      <label>Senha</label>
+      <input id="password" type="password" placeholder="••••••••">
+
+      <button class="btn-gold" style="width:100%;" onclick="login()">
+        Entrar
+      </button>
+    </div>
+  </div>
+
+
+  <!-- PAINEL -->
+  <div id="adminScreen" class="hidden">
+
+    <header>
+      <div class="container header-content">
+        <h1>UZI<span class="gold">18K</span> — Estoque</h1>
+
+        <div class="top-actions">
+          <button class="btn-dark" onclick="loadInventory()">
+            Atualizar
+          </button>
+
+          <button class="btn-dark" onclick="logout()">
+            Sair
+          </button>
+        </div>
+      </div>
+    </header>
+
+
+    <main class="container">
+
+      <div id="mainMessage" class="message"></div>
+
+      <!-- ESTATÍSTICAS -->
+      <div class="stats">
+
+        <div class="stat">
+          <div style="color:#999;">Produtos cadastrados</div>
+          <div id="totalProducts" class="stat-number">0</div>
+        </div>
+
+        <div class="stat">
+          <div style="color:#999;">Estoque total</div>
+          <div id="totalStock" class="stat-number">0</div>
+        </div>
+
+        <div class="stat">
+          <div style="color:#999;">Esgotados</div>
+          <div id="outOfStock" class="stat-number">0</div>
+        </div>
+
+      </div>
+
+
+      <!-- ADICIONAR PRODUTO -->
+      <div class="panel">
+
+        <h2>Adicionar produto</h2>
+
+        <div class="add-form">
+
+          <div>
+            <label>Nome do produto</label>
+            <input id="newName" type="text" placeholder="Ex.: Duplix 5mm">
+          </div>
+
+          <div>
+            <label>Product Key</label>
+            <input id="newKey" type="text" placeholder="Ex.: duplix-5mm">
+          </div>
+
+          <div>
+            <label>Variação / tamanho</label>
+            <input id="newVariant" type="text" placeholder="Ex.: 19cm">
+          </div>
+
+          <div>
+            <label>Estoque</label>
+            <input id="newStock" type="number" min="0" value="0">
+          </div>
+
+          <button class="btn-gold" onclick="addProduct()">
+            Adicionar
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ESTOQUE -->
+      <div class="panel" style="margin-top:20px;">
+
+        <h2>Estoque atual</h2>
+
+        <div id="inventoryList" class="inventory-list">
+          Carregando...
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+
+<script>
+
+  const SUPABASE_URL =
+    "https://meulxqleymbjkedaagby.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_8UM9No_56gY8ArX0yb1MmA_XVH-V-mV";
+
+  const supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+
+  // LOGIN
+  async function login() {
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
+
+    showMessage(
+      "loginMessage",
+      "",
+      ""
+    );
+
+    if (!email || !password) {
+      showMessage(
+        "loginMessage",
+        "Preencha e-mail e senha.",
+        "error"
+      );
+      return;
+    }
+
+    const { error } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    if (error) {
+
+      showMessage(
+        "loginMessage",
+        "E-mail ou senha incorretos.",
+        "error"
+      );
+
+      return;
+    }
+
+    showAdmin();
+  }
+
+
+  // LOGOUT
+  async function logout() {
+
+    await supabaseClient.auth.signOut();
+
+    document
+      .getElementById("adminScreen")
+      .classList.add("hidden");
+
+    document
+      .getElementById("loginScreen")
+      .classList.remove("hidden");
+  }
+
+
+  // MOSTRAR PAINEL
+  function showAdmin() {
+
+    document
+      .getElementById("loginScreen")
+      .classList.add("hidden");
+
+    document
+      .getElementById("adminScreen")
+      .classList.remove("hidden");
+
+    loadInventory();
+  }
+
+
+  // CARREGAR ESTOQUE
+  async function loadInventory() {
+
+    const list =
+      document.getElementById("inventoryList");
+
+    list.innerHTML = "Carregando...";
+
+    const { data, error } =
+      await supabaseClient
+        .from("inventory_items")
+        .select("*")
+        .order("product_name")
+        .order("variant");
+
+    if (error) {
+
+      list.innerHTML =
+        "<p style='color:#ff7777;'>Erro ao carregar estoque.</p>";
+
+      console.error(error);
+
+      return;
+    }
+
+    renderInventory(data || []);
+  }
+
+
+  // RENDERIZAR
+  function renderInventory(items) {
+
+    const list =
+      document.getElementById("inventoryList");
+
+    if (!items.length) {
+
+      list.innerHTML =
+        "<p style='color:#999;'>Nenhum produto cadastrado.</p>";
+
+      updateStats([]);
+
+      return;
+    }
+
+    list.innerHTML = items.map(item => {
+
+      let statusClass = "available";
+      let statusText = "Disponível";
+
+      if (item.stock === 0) {
+        statusClass = "out";
+        statusText = "Esgotado";
+      }
+      else if (item.stock <= item.low_stock_threshold) {
+        statusClass = "low";
+        statusText = "Estoque baixo";
+      }
+
+      return `
+        <div class="item">
+
+          <div>
+
+            <div class="item-name">
+              ${escapeHtml(item.product_name)}
+            </div>
+
+            <div class="item-info">
+              Chave: ${escapeHtml(item.product_key)}
+              ${item.variant ? " • Tamanho: " + escapeHtml(item.variant) : ""}
+            </div>
+
+            <span class="badge ${statusClass}">
+              ${statusText}
+            </span>
+
+          </div>
+
+          <div class="stock-area">
+
+            <button
+              class="btn-dark"
+              onclick="changeStock('${item.id}', -1)">
+              −
+            </button>
+
+            <input
+              class="stock-input"
+              type="number"
+              min="0"
+              value="${item.stock}"
+              onchange="setStock('${item.id}', this.value)"
+            >
+
+            <button
+              class="btn-gold"
+              onclick="changeStock('${item.id}', 1)">
+              +
+            </button>
+
+            <button
+              class="btn-dark"
+              onclick="deleteProduct('${item.id}')">
+              Excluir
+            </button>
+
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+
+    updateStats(items);
+  }
+
+
+  // ALTERAR ESTOQUE
+  async function changeStock(id, amount) {
+
+    const { data: item, error: findError } =
+      await supabaseClient
+        .from("inventory_items")
+        .select("stock")
+        .eq("id", id)
+        .single();
+
+    if (findError) {
+      showMainMessage("Erro ao localizar produto.", "error");
+      return;
+    }
+
+    const newStock =
+      Math.max(0, Number(item.stock) + amount);
+
+    await setStock(id, newStock);
+  }
+
+
+  // DEFINIR ESTOQUE
+  async function setStock(id, value) {
+
+    const stock =
+      Math.max(0, parseInt(value, 10) || 0);
+
+    const { error } =
+      await supabaseClient
+        .from("inventory_items")
+        .update({
+          stock,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+    if (error) {
+
+      showMainMessage(
+        "Não foi possível atualizar o estoque.",
+        "error"
+      );
+
+      console.error(error);
+
+      return;
+    }
+
+    showMainMessage(
+      "Estoque atualizado.",
+      "success"
+    );
+
+    loadInventory();
+  }
+
+
+  // ADICIONAR PRODUTO
+  async function addProduct() {
+
+    const productName =
+      document.getElementById("newName").value.trim();
+
+    const productKey =
+      document.getElementById("newKey").value.trim();
+
+    const variant =
+      document.getElementById("newVariant").value.trim();
+
+    const stock =
+      Math.max(
+        0,
+        parseInt(
+          document.getElementById("newStock").value,
+          10
+        ) || 0
+      );
+
+    if (!productName || !productKey) {
+
+      showMainMessage(
+        "Preencha o nome e o Product Key.",
+        "error"
+      );
+
+      return;
+    }
+
+    const { error } =
+      await supabaseClient
+        .from("inventory_items")
+        .insert({
+          product_name: productName,
+          product_key: productKey,
+          variant: variant || null,
+          stock: stock
+        });
+
+    if (error) {
+
+      showMainMessage(
+        "Erro ao adicionar produto: " + error.message,
+        "error"
+      );
+
+      return;
+    }
+
+    document.getElementById("newName").value = "";
+    document.getElementById("newKey").value = "";
+    document.getElementById("newVariant").value = "";
+    document.getElementById("newStock").value = "0";
+
+    showMainMessage(
+      "Produto adicionado com sucesso.",
+      "success"
+    );
+
+    loadInventory();
+  }
+
+
+  // EXCLUIR
+  async function deleteProduct(id) {
+
+    if (!confirm("Deseja realmente excluir esta variação?")) {
+      return;
+    }
+
+    const { error } =
+      await supabaseClient
+        .from("inventory_items")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+
+      showMainMessage(
+        "Não foi possível excluir.",
+        "error"
+      );
+
+      return;
+    }
+
+    showMainMessage(
+      "Produto excluído.",
+      "success"
+    );
+
+    loadInventory();
+  }
+
+
+  // ESTATÍSTICAS
+  function updateStats(items) {
+
+    document.getElementById("totalProducts").textContent =
+      items.length;
+
+    const total =
+      items.reduce(
+        (sum, item) => sum + Number(item.stock || 0),
+        0
+      );
+
+    document.getElementById("totalStock").textContent =
+      total;
+
+    const out =
+      items.filter(
+        item => Number(item.stock) === 0
+      ).length;
+
+    document.getElementById("outOfStock").textContent =
+      out;
+  }
+
+
+  // MENSAGENS
+  function showMessage(id, text, type) {
+
+    const element =
+      document.getElementById(id);
+
+    element.textContent = text;
+
+    element.className =
+      "message " + (type || "");
+  }
+
+
+  function showMainMessage(text, type) {
+
+    showMessage(
+      "mainMessage",
+      text,
+      type
+    );
+
+    setTimeout(() => {
+
+      const element =
+        document.getElementById("mainMessage");
+
+      element.className = "message";
+
+    }, 3000);
+  }
+
+
+  // SEGURANÇA CONTRA HTML
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+
+  // VERIFICAR SESSÃO
+  async function checkSession() {
+
+    const {
+      data: { session }
+    } = await supabaseClient.auth.getSession();
+
+    if (session) {
+      showAdmin();
+    }
+  }
+
+
+  checkSession();
+
+</script>
+
+</body>
+</html>
