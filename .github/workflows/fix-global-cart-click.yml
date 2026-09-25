@@ -1,0 +1,48 @@
+name: Fix global cart click DEV
+
+on: [push]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bind product cart button directly
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("index.html")
+          s=p.read_text(encoding="utf-8")
+          marker='<script id="uzi-global-product-cart-click-fix">'
+          if marker not in s:
+              fix=r'''<script id="uzi-global-product-cart-click-fix">
+(function(){
+  function bind(){
+    var b=document.getElementById('uziGlobalProductCart');
+    if(!b || b.dataset.uziGlobalCartBound) return;
+    b.dataset.uziGlobalCartBound='1';
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(typeof window.uzi18kOpenCart==='function') window.uzi18kOpenCart();
+    },true);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind);
+  else bind();
+})();
+</script>
+'''
+              s=s.replace('</body>',fix+'</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: tornar botao de carrinho do produto responsivo"
+          git push
