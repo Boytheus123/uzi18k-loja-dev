@@ -1,32 +1,10 @@
-name: UZI18K product cart fix
+name: UZI18K cart patch
 
 on:
   push:
 
-permissions:
-  contents: write
-
 jobs:
-  fix:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Apply cart layer fix
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path("index.html")
-          s = p.read_text(encoding="utf-8")
-          marker = 'uzi-v126-product-cart-layer-fix'
-          if marker not in s:
-              fix = """<style id="uzi-v126-product-cart-layer-fix">
-.v75-product-page:target{z-index:2147483000 !important;}
-#uziCartDrawer,#uziCartDrawer.is-open{z-index:2147483647 !important;}
-#uziGlobalProductCart{z-index:2147483646 !important;}
-</style>"""
-              p.write_text(s.replace("</body>", fix + "</body>"), encoding="utf-8")
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git diff --cached --quiet || (git commit -m "fix: camada do carrinho no produto" && git push)
+      - run: echo "workflow ok"
