@@ -48,15 +48,31 @@
     return e;
   }
 
+  function purchaseButtons(product){
+    return [...product.querySelectorAll('button, a')].filter(el=>{
+      const t=el.textContent.trim().toLowerCase();
+      return t.includes('adicionar ao carrinho') || t.includes('comprar agora');
+    });
+  }
+
+  function syncPurchaseButtons(product,stock){
+    const soldOut=stock<=0;
+    purchaseButtons(product).forEach(btn=>{
+      btn.disabled=soldOut;
+      btn.setAttribute('aria-disabled',String(soldOut));
+      if(soldOut){
+        btn.classList.add('disabled','is-disabled');
+      }else{
+        btn.classList.remove('disabled','is-disabled');
+      }
+    });
+  }
+
   function connect(product,rows){
     const sizes=product.querySelector('.v75-sizes');
     if(!sizes) return;
     const map={};
     rows.forEach(r=>map[String(r.variant||'Único').toLowerCase()]=r);
-
-    // IMPORTANTE: não altera os botões/tamanhos nem a lógica original do carrinho.
-    // O código original da loja continua responsável por selecionar o tamanho
-    // e habilitar/desabilitar Adicionar ao carrinho / Comprar agora.
     const st=statusEl(product);
 
     function refresh(){
@@ -68,6 +84,9 @@
       const v=String(sel.getAttribute('data-size')||sel.textContent.trim()).toLowerCase();
       const r=map[v];
       const n=r?Number(r.stock||0):0;
+
+      syncPurchaseButtons(product,n);
+
       if(n<=0){
         st.textContent='ESGOTADO';
         st.style.color='#ff7070';
