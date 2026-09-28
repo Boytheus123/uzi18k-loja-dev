@@ -3,18 +3,118 @@
   const SUPABASE_URL = 'https://meulxqleymbjkedaagby.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_8UM9No_56gY8ArX0yb1MmA_XVH-V-mV';
   const PRODUCT_KEYS = {
-    'produto-duplix-5mm':'pulseira-duplix-5mm','produto-pulseira-cartier':'pulseira-cartier-2mm','produto-pulseira-grumet':'pulseira-grumet-2-5mm','produto-pulseira-piastrine-3mm':'pulseira-piastrini-3mm','produto-corrente-duplix':'duplix-3mm','produto-cordao-entrelacado':'cordao-baiano-3mm','produto-corrente-veneziana':'veneziana-1mm','produto-corrente-grumet':'grumet-3mm','produto-corrente-cadeado':'cadeado-3mm','produto-corrente-cartier':'cartier-2mm','produto-corrente-elo-portugues':'elo-portugues-2mm','produto-corrente-piastrini':'piastrini-2mm','produto-escapulario-cruz':'escapulario-espirito-santo-cruz','produto-escapulario-jesus-nossa-senhora':'escapulario-nossa-senhora-cristo','produto-duplix-3mm':'pulseira-duplix-3mm','produto-pulseira-veneziana':'pulseira-veneziana-1mm','produto-pulseira-cadeado':'pulseira-cadeado-2-8mm'
+    'produto-duplix-5mm':'pulseira-duplix-5mm',
+    'produto-pulseira-cartier':'pulseira-cartier-2mm',
+    'produto-pulseira-grumet':'pulseira-grumet-2-5mm',
+    'produto-pulseira-piastrine-3mm':'pulseira-piastrini-3mm',
+    'produto-corrente-duplix':'duplix-3mm',
+    'produto-cordao-entrelacado':'cordao-baiano-3mm',
+    'produto-corrente-veneziana':'veneziana-1mm',
+    'produto-corrente-grumet':'grumet-3mm',
+    'produto-corrente-cadeado':'cadeado-3mm',
+    'produto-corrente-cartier':'cartier-2mm',
+    'produto-corrente-elo-portugues':'elo-portugues-2mm',
+    'produto-corrente-piastrini':'piastrini-2mm',
+    'produto-escapulario-cruz':'escapulario-espirito-santo-cruz',
+    'produto-escapulario-jesus-nossa-senhora':'escapulario-nossa-senhora-cristo',
+    'produto-duplix-3mm':'pulseira-duplix-3mm',
+    'produto-pulseira-veneziana':'pulseira-veneziana-1mm',
+    'produto-pulseira-cadeado':'pulseira-cadeado-2-8mm'
   };
-  function client(){return window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;}
-  function loadLib(done){if(window.supabase)return done();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';s.onload=done;s.onerror=()=>console.error('Supabase não carregou.');document.head.appendChild(s);}
-  function statusEl(product){let e=product.querySelector('.uzi-live-stock');if(e)return e;e=document.createElement('div');e.className='uzi-live-stock';e.style.cssText='margin:10px 0 14px;font:700 12px/1.4 Arial,sans-serif;letter-spacing:.6px;';const sizes=product.querySelector('.v75-sizes');if(sizes)sizes.insertAdjacentElement('afterend',e);return e;}
-  function connect(product,rows){const sizes=product.querySelector('.v75-sizes');if(!sizes)return;const map={};rows.forEach(r=>map[String(r.variant||'Único').toLowerCase()]=r);
-    // Preserva integralmente o markup e a lógica do carrinho original.
-    sizes.querySelectorAll('.v75-size').forEach(b=>{const v=String(b.getAttribute('data-size')||b.textContent.trim()).toLowerCase();const r=map[v];if(!r)return;const n=Number(r.stock||0);b.title=n<=0?'Esgotado':'Estoque: '+n;if(n<=0){b.style.pointerEvents='none';b.style.opacity='.45';b.setAttribute('aria-disabled','true');}else{b.style.pointerEvents='auto';b.style.opacity='1';b.setAttribute('aria-disabled','false');}});
-    const st=statusEl(product);
-    function refresh(){const sel=product.querySelector('.v75-size.is-selected');if(!sel){st.textContent='';return;}const v=String(sel.getAttribute('data-size')||sel.textContent.trim()).toLowerCase();const r=map[v];const n=r?Number(r.stock||0):0;if(n<=0){st.textContent='ESGOTADO';st.style.color='#ff7070';}else if(n<=2){st.textContent='ÚLTIMAS UNIDADES • '+n+' disponível'+(n===1?'':'is');st.style.color='#f3c65b';}else{st.textContent='EM ESTOQUE • '+n+' unidades disponíveis';st.style.color='#62d889';}}
-    sizes.addEventListener('click',()=>setTimeout(refresh,20),true);refresh();
+
+  function client(){
+    return window.supabase && window.supabase.createClient
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+      : null;
   }
-  async function load(){const sb=client();if(!sb)return;const products=Object.keys(PRODUCT_KEYS).map(id=>document.getElementById(id)).filter(Boolean);if(!products.length)return;const keys=[...new Set(products.map(p=>PRODUCT_KEYS[p.id]))];const q=await sb.from('inventory_items').select('product_key,variant,stock,active').in('product_key',keys).eq('active',true);if(q.error){console.error('Erro ao consultar estoque:',q.error);return;}const grouped={};(q.data||[]).forEach(r=>{(grouped[r.product_key]||(grouped[r.product_key]=[])).push(r);});products.forEach(p=>{const rows=grouped[PRODUCT_KEYS[p.id]]||[];if(rows.length)connect(p,rows);});}
-  function start(){loadLib(load);} if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+
+  function loadLib(done){
+    if(window.supabase) return done();
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    s.onload=done;
+    s.onerror=()=>console.error('Supabase não carregou.');
+    document.head.appendChild(s);
+  }
+
+  function statusEl(product){
+    let e=product.querySelector('.uzi-live-stock');
+    if(e) return e;
+    e=document.createElement('div');
+    e.className='uzi-live-stock';
+    e.style.cssText='margin:10px 0 14px;font:700 12px/1.4 Arial,sans-serif;letter-spacing:.6px;';
+    const sizes=product.querySelector('.v75-sizes');
+    if(sizes) sizes.insertAdjacentElement('afterend',e);
+    return e;
+  }
+
+  function connect(product,rows){
+    const sizes=product.querySelector('.v75-sizes');
+    if(!sizes) return;
+    const map={};
+    rows.forEach(r=>map[String(r.variant||'Único').toLowerCase()]=r);
+
+    // IMPORTANTE: não altera os botões/tamanhos nem a lógica original do carrinho.
+    // O código original da loja continua responsável por selecionar o tamanho
+    // e habilitar/desabilitar Adicionar ao carrinho / Comprar agora.
+    const st=statusEl(product);
+
+    function refresh(){
+      const sel=product.querySelector('.v75-size.is-selected');
+      if(!sel){
+        st.textContent='';
+        return;
+      }
+      const v=String(sel.getAttribute('data-size')||sel.textContent.trim()).toLowerCase();
+      const r=map[v];
+      const n=r?Number(r.stock||0):0;
+      if(n<=0){
+        st.textContent='ESGOTADO';
+        st.style.color='#ff7070';
+      }else if(n<=2){
+        st.textContent='ÚLTIMAS UNIDADES • '+n+' disponível'+(n===1?'':'is');
+        st.style.color='#f3c65b';
+      }else{
+        st.textContent='EM ESTOQUE • '+n+' unidades disponíveis';
+        st.style.color='#62d889';
+      }
+    }
+
+    sizes.addEventListener('click',()=>setTimeout(refresh,50));
+    refresh();
+  }
+
+  async function load(){
+    const sb=client();
+    if(!sb) return;
+    const products=Object.keys(PRODUCT_KEYS)
+      .map(id=>document.getElementById(id))
+      .filter(Boolean);
+    if(!products.length) return;
+
+    const keys=[...new Set(products.map(p=>PRODUCT_KEYS[p.id]))];
+    const q=await sb.from('inventory_items')
+      .select('product_key,variant,stock,active')
+      .in('product_key',keys)
+      .eq('active',true);
+
+    if(q.error){
+      console.error('Erro ao consultar estoque:',q.error);
+      return;
+    }
+
+    const grouped={};
+    (q.data||[]).forEach(r=>{
+      (grouped[r.product_key]||(grouped[r.product_key]=[])).push(r);
+    });
+
+    products.forEach(p=>{
+      const rows=grouped[PRODUCT_KEYS[p.id]]||[];
+      if(rows.length) connect(p,rows);
+    });
+  }
+
+  function start(){loadLib(load);}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start);
+  else start();
 })();
