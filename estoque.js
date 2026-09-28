@@ -68,6 +68,31 @@
     });
   }
 
+  function syncSizeOptions(product,map){
+    product.querySelectorAll('.v75-size').forEach(size=>{
+      const v=String(size.getAttribute('data-size')||size.textContent.trim()).toLowerCase();
+      const row=map[v];
+      const stock=row?Number(row.stock||0):0;
+      const soldOut=!!row && stock<=0;
+
+      size.setAttribute('aria-disabled',String(soldOut));
+      size.classList.toggle('is-sold-out',soldOut);
+      size.style.opacity=soldOut?'0.45':'';
+      size.style.cursor=soldOut?'not-allowed':'';
+      size.style.pointerEvents=soldOut?'none':'';
+
+      if(soldOut){
+        size.title='Esgotado';
+        if(!size.dataset.originalText) size.dataset.originalText=size.textContent.trim();
+        size.textContent=size.dataset.originalText+' • ESGOTADO';
+        if(size.classList.contains('is-selected')) size.classList.remove('is-selected');
+      }else if(size.dataset.originalText){
+        size.textContent=size.dataset.originalText;
+        size.removeAttribute('title');
+      }
+    });
+  }
+
   function connect(product,rows){
     const sizes=product.querySelector('.v75-sizes');
     if(!sizes) return;
@@ -76,9 +101,11 @@
     const st=statusEl(product);
 
     function refresh(){
+      syncSizeOptions(product,map);
       const sel=product.querySelector('.v75-size.is-selected');
       if(!sel){
         st.textContent='';
+        syncPurchaseButtons(product,1);
         return;
       }
       const v=String(sel.getAttribute('data-size')||sel.textContent.trim()).toLowerCase();
