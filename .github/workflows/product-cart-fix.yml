@@ -26,6 +26,11 @@ jobs:
           if cart_marker not in s:
               s = s.replace("</body>", cart_fix + "</body>")
 
+          inventory_marker = "uzi18k-inventory-script"
+          inventory_script = '<script id="uzi18k-inventory-script" src="estoque.js"></script>'
+          if inventory_marker not in s:
+              s = s.replace("</body>", inventory_script + "</body>")
+
           style = """<style>
           :root{--gold:#d4af37;--bg:#050505;--card:#101010;--text:#f5f5f5;--muted:#aaa;--border:#242424}
           *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.65}
@@ -72,7 +77,6 @@ jobs:
           Path("garantia.html").write_text(page("Garantia UZI18K","Conheça as condições da nossa garantia para o banho de ouro 18K.",garantia),encoding="utf-8")
           Path("trocas-e-devolucoes.html").write_text(page("Trocas e devoluções","Confira as orientações da UZI18K para devoluções e trocas.",trocas),encoding="utf-8")
 
-          # Atualiza links existentes sem alterar o restante da loja.
           def link_to(label, target):
               global s
               pat = r'(<a\b[^>]*href=(["\'])[^"\']*\2[^>]*>)\s*'+re.escape(label)+r'\s*(</a>)'
@@ -81,7 +85,6 @@ jobs:
           link_to("Garantia","garantia.html")
           link_to("Trocas e devoluções","trocas-e-devolucoes.html")
 
-          # Substitui os antigos links do rodapé pelos novos conteúdos.
           def replace_label(old, new, target):
               global s
               pat = r'(<a\b[^>]*href=(["\'])[^"\']*\2[^>]*>)\s*'+re.escape(old)+r'\s*(</a>)'
