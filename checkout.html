@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:28px 18px}.brand{display:block;width:205px;height:auto;margin:0 0 18px 0}.brand img{display:block;width:100%;height:auto;object-fit:contain}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}.card{background:#111;border:1px solid #292929;border-radius:14px;padding:20px}.title{font-size:22px;margin:0 0 18px}.muted{color:#aaa}.field{margin:12px 0}.field label{display:block;font-size:13px;color:#bbb;margin-bottom:6px}.field input{width:100%;padding:13px;border-radius:9px;border:1px solid #333;background:#181818;color:#fff}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;padding:14px;border:0;border-radius:10px;background:#d4af37;color:#080808;font-weight:800;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.option{padding:12px;border:1px solid #333;border-radius:10px;margin:8px 0;cursor:pointer}.option:hover{border-color:#d4af37}.error{color:#ff7070;margin-top:10px}.total{font-size:22px;font-weight:800}.back{color:#d4af37;text-decoration:none;display:inline-block;margin-bottom:18px}@media(max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
 </style>
-</head>
+<script src="https://sdk.mercadopago.com/js/v2"></script></head>
 <body>
 <div class="wrap">
 <div class="brand"><img src="./logo-uzi18k.png" alt="UZI18K Semi Joias"></div>
@@ -35,7 +35,7 @@
 <div style="display:flex;justify-content:space-between;margin-top:10px"><span>Frete</span><strong id="freight">A calcular</strong></div>
 <hr style="border-color:#292929;margin:18px 0">
 <div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div>
-<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button>
+<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div class="error" id="paymentError"></div></div>
 </aside>
 </div>
 </div>
@@ -131,7 +131,8 @@ document.getElementById("quote").onclick=async()=>{
   el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("continue").disabled=false});
  }catch(e){el.innerHTML='<span class="error">'+e.message+"</span>"}
 };
-document.getElementById("continue").onclick=()=>{
+let paymentBrickController=null;
+async function openPayment(){
   const required=[["name","Nome completo"],["email","E-mail"],["phone","Telefone"],["document","CPF"],["number","Número"],["address","Endereço"],["neighborhood","Bairro"],["cityState","Cidade/UF"]];
   const missing=required.filter(([id])=>!document.getElementById(id).value.trim());
   const err=document.getElementById("error");
@@ -139,8 +140,80 @@ document.getElementById("continue").onclick=()=>{
   if(!shipping){err.textContent="Selecione uma opção de frete.";return}
   if(missing.length){err.textContent="Preencha: "+missing.map(x=>x[1]).join(", ")+".";document.getElementById(missing[0][0]).focus();return}
   err.textContent="";
-  sessionStorage.setItem("uzi18k_checkout_draft",JSON.stringify({cart,shipping,customer:{name:name.value,email:email.value,phone:phone.value,document:document.value,number:number.value,complement:complement.value,address:address.value,neighborhood:neighborhood.value,cityState:cityState.value,cep:cep.value}}));
-  alert("Dados conferidos. Próximo passo: pagamento Mercado Pago.");
-};
-</script>
+  const customer={
+    name:document.getElementById("name").value.trim(),
+    email:document.getElementById("email").value.trim(),
+    phone:document.getElementById("phone").value.trim(),
+    document:document.getElementById("document").value.trim(),
+    number:document.getElementById("number").value.trim(),
+    complement:document.getElementById("complement").value.trim(),
+    address:document.getElementById("address").value.trim(),
+    neighborhood:document.getElementById("neighborhood").value.trim(),
+    cityState:document.getElementById("cityState").value.trim(),
+    cep:document.getElementById("cep").value.trim()
+  };
+  sessionStorage.setItem("uzi18k_checkout_draft",JSON.stringify({cart,shipping,customer}));
+  document.getElementById("continue").disabled=true;
+  document.getElementById("continue").textContent="Carregando pagamento...";
+  document.getElementById("paymentSection").style.display="block";
+  try{
+    if(paymentBrickController){await paymentBrickController.unmount();paymentBrickController=null}
+    const mp=new MercadoPago("APP_USR-95cdfd02-dbbd-492e-bedb-442ef397d4d0");
+    const bricksBuilder=mp.bricks();
+    paymentBrickController=await bricksBuilder.create("payment","paymentBrick_container",{
+      initialization:{
+        amount:Number((subtotal+Number(shipping.price||0)).toFixed(2)),
+        payer:{email:customer.email,identification:{type:"CPF",number:clean(customer.document)}}
+      },
+      customization:{
+        paymentMethods:{
+          creditCard:"all",
+          debitCard:"all",
+          prepaidCard:"all",
+          bankTransfer:["pix"],
+          mercadoPago:["wallet_purchase"]
+        }
+      },
+      callbacks:{
+        onReady:()=>{document.getElementById("continue").textContent="Pagamento disponível"},
+        onSubmit:async({selectedPaymentMethod,formData})=>{
+          const paymentError=document.getElementById("paymentError");
+          paymentError.textContent="";
+          try{
+            const apiItems=cart.map(i=>({
+              product_key:i.product_key||i.productKey||i.key||i.productId||i.id,
+              product_name:i.name||i.product_name||i.title||i.nome||"Produto",
+              variant:i.variant||i.size||i.tamanho||null,
+              quantity:Number(i.quantity||i.qty||i.quantidade||1),
+              unit_price:Number(i.price??i.preco??i.unit_price??i.valor??0)
+            }));
+            const payload={
+              items:apiItems,
+              customer,
+              shipping:{
+                cep:customer.cep,
+                method:shipping.name||"",
+                amount:Number(shipping.price||0)
+              },
+              payment:formData
+            };
+            const res=await fetch(API+"/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+            const data=await res.json();
+            if(!res.ok)throw new Error(data.error||data.message||"Não foi possível processar o pagamento.");
+            sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));
+            paymentError.style.color="#8be28b";
+            paymentError.textContent="Pagamento enviado. Aguarde a confirmação.";
+            resolve();
+          }catch(e){paymentError.textContent=e.message;reject(e)}
+        },
+        onError:error=>{document.getElementById("paymentError").textContent="Erro no formulário de pagamento. Confira os dados e tente novamente.";console.error(error)}
+      }
+    });
+  }catch(e){
+    document.getElementById("paymentError").textContent=e.message||"Não foi possível carregar o pagamento.";
+    document.getElementById("continue").disabled=false;
+    document.getElementById("continue").textContent="Continuar para pagamento";
+  }
+}
+document.getElementById("continue").onclick=openPayment;</script>
 </body></html>
