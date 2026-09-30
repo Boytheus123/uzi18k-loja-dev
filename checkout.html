@@ -43,12 +43,54 @@
 const API="https://meulxqleymbjkedaagby.supabase.co/functions/v1/checkout-api";
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
 const clean=v=>String(v||"").replace(/\D/g,"");
-let cart=[],subtotal=0,shipping=null;
-try{cart=JSON.parse(localStorage.getItem("cart")||localStorage.getItem("carrinho")||"[]")}catch{}
+
+function normalizeCart(raw){
+  if(!raw) return [];
+  if(typeof raw==="string"){try{return normalizeCart(JSON.parse(raw))}catch{return []}}
+  if(Array.isArray(raw)) return raw;
+  if(typeof raw==="object"){
+    for(const k of ["items","cart","carrinho","products","produtos"]){
+      if(Array.isArray(raw[k])) return raw[k];
+    }
+  }
+  return [];
+}
+function scoreCart(arr){
+  return arr.reduce((n,i)=>{
+    if(!i||typeof i!=="object") return n;
+    const hasName=!!(i.name||i.product_name||i.title||i.nome);
+    const hasPrice=i.price!=null||i.preco!=null||i.unit_price!=null||i.valor!=null;
+    const hasQty=i.quantity!=null||i.qty!=null||i.quantidade!=null;
+    const hasKey=!!(i.product_key||i.productKey||i.key||i.id);
+    return n+(hasName?3:0)+(hasPrice?3:0)+(hasQty?1:0)+(hasKey?1:0);
+  },0);
+}
+function readCart(){
+  const candidates=[];
+  const add=(source,raw)=>{const arr=normalizeCart(raw);if(arr.length&&scoreCart(arr)>=Math.max(3,arr.length*3))candidates.push({source,arr,score:scoreCart(arr)})};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i); if(!k) continue;
+    const v=localStorage.getItem(k);
+    add("localStorage:"+k,v);
+  }
+  for(let i=0;i<sessionStorage.length;i++){
+    const k=sessionStorage.key(i); if(!k) continue;
+    const v=sessionStorage.getItem(k);
+    add("sessionStorage:"+k,v);
+  }
+  for(const k of ["cart","carrinho","uziCart","uzi18kCart","cartItems","cartItemsUzi18k"]){
+    try{add("global:"+k,window[k])}catch{}
+  }
+  if(window.uziCart&&typeof window.uziCart==="object")add("window.uziCart",window.uziCart);
+  if(window.cart&&typeof window.cart==="object")add("window.cart",window.cart);
+  candidates.sort((a,b)=>b.score-a.score);
+  return candidates[0]?.arr||[];
+}
+let cart=readCart(),subtotal=0,shipping=null;
 const itemsEl=document.getElementById("items");
 if(!cart.length){itemsEl.textContent="Seu carrinho está vazio."}else{
- itemsEl.innerHTML=cart.map(i=>{const q=Number(i.quantity||i.qty||1),p=Number(i.price||i.preco||0);return '<div style="padding:9px 0;border-bottom:1px solid #292929">'+(i.name||i.product_name||"Produto")+' <span class="muted">× '+q+'</span><div>'+money(p*q)+'</div></div>'}).join("");
- subtotal=cart.reduce((s,i)=>s+Number(i.price||i.preco||0)*Number(i.quantity||i.qty||1),0);
+ itemsEl.innerHTML=cart.map(i=>{const q=Number(i.quantity||i.qty||i.quantidade||1),p=Number(i.price??i.preco??i.unit_price??i.valor??0);return '<div style="padding:9px 0;border-bottom:1px solid #292929">'+(i.name||i.product_name||i.title||i.nome||"Produto")+' <span class="muted">× '+q+'</span><div>'+money(p*q)+'</div></div>'}).join("");
+ subtotal=cart.reduce((s,i)=>s+Number(i.price??i.preco??i.unit_price??i.valor??0)*Number(i.quantity||i.qty||i.quantidade||1),0);
 }
 document.getElementById("subtotal").textContent=money(subtotal);
 document.getElementById("total").textContent=money(subtotal);
@@ -57,7 +99,7 @@ document.getElementById("quote").onclick=async()=>{
  const cep=clean(document.getElementById("cep").value); if(cep.length!==8)return;
  const el=document.getElementById("shipping");el.innerHTML='<span class="muted">Calculando...</span>';
  try{
-  const apiItems=cart.map(i=>({product_key:i.product_key||i.productKey||i.key,variant:i.variant||i.size||null,quantity:Number(i.quantity||i.qty||1),unit_price:Number(i.price||i.preco||0)}));
+  const apiItems=cart.map(i=>({product_key:i.product_key||i.productKey||i.key||i.productId||i.id,variant:i.variant||i.size||i.tamanho||null,quantity:Number(i.quantity||i.qty||i.quantidade||1),unit_price:Number(i.price??i.preco??i.unit_price??i.valor??0)}));
   const res=await fetch(API+"/shipping/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({destination_cep:cep,items:apiItems})});
   const data=await res.json();if(!res.ok)throw new Error(data.error||"Erro ao calcular");
   el.innerHTML=(data.quotes||[]).map((q,n)=>'<div class="option" data-i="'+n+'"><strong>'+q.name+'</strong><br><span class="muted">'+(q.company||"")+(q.delivery_time?" · "+q.delivery_time+" dias úteis":"")+'</span><br><strong>'+money(q.price)+'</strong></div>').join("")||'<span class="muted">Nenhuma opção disponível.</span>';
