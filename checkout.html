@@ -35,7 +35,7 @@
 <div style="display:flex;justify-content:space-between;margin-top:10px"><span>Frete</span><strong id="freight">A calcular</strong></div>
 <hr style="border-color:#292929;margin:18px 0">
 <div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div>
-<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha como deseja pagar. O pagamento é processado pelo Mercado Pago.</p><div id="paymentChoice" style="display:grid;gap:10px;margin:14px 0"><button type="button" class="btn" id="pixStart" style="background:#168a4a;color:#fff">Pix — gerar QR Code</button><button type="button" class="btn" id="cardStart">Cartão de crédito ou débito</button></div><div id="paymentBrick_container" style="display:none"></div><div id="pixResult" style="display:none;margin-top:16px;padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515"><h3 style="margin:0 0 10px;font-size:16px">Pague com Pix</h3><div id="pixStatus" class="muted" style="font-size:13px;margin-bottom:12px">Gerando Pix...</div><img id="pixQr" alt="QR Code Pix" style="display:none;width:220px;height:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:0 auto 14px"><div id="pixCopyWrap" style="display:none"><label style="display:block;font-size:12px;color:#bbb;margin-bottom:6px">Pix Copia e Cola</label><div style="display:flex;gap:8px"><input id="pixCopy" readonly style="flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid #333;background:#0f0f0f;color:#fff;font-size:11px"><button type="button" class="btn" id="pixCopyBtn" style="width:auto;padding:12px 16px">Copiar</button></div></div></div><div class="error" id="paymentError"></div></div>
+<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div id="pixResult" style="display:none;margin-top:16px;padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515"><h3 style="margin:0 0 10px;font-size:16px">Pague com Pix</h3><div id="pixStatus" class="muted" style="font-size:13px;margin-bottom:12px">Aguardando geração do Pix...</div><img id="pixQr" alt="QR Code Pix" style="display:none;width:220px;height:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:0 auto 14px"><div id="pixCopyWrap" style="display:none"><label style="display:block;font-size:12px;color:#bbb;margin-bottom:6px">Pix Copia e Cola</label><div style="display:flex;gap:8px"><input id="pixCopy" readonly style="flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid #333;background:#0f0f0f;color:#fff;font-size:11px"><button type="button" class="btn" id="pixCopyBtn" style="width:auto;padding:12px 16px">Copiar</button></div></div></div><div class="error" id="paymentError"></div></div>
 </aside>
 </div>
 </div>
@@ -133,51 +133,114 @@ document.getElementById("quote").onclick=async()=>{
  }catch(e){el.innerHTML='<span class="error">'+e.message+"</span>"}
 };
 let paymentBrickController=null;
-let checkoutCustomer=null;
-function buildOrderPayload(customer,payment){
-  const apiItems=cart.map(i=>({product_key:i.product_key||i.productKey||i.key||i.productId||i.id,product_name:i.name||i.product_name||i.title||i.nome||"Produto",variant:i.variant||i.size||i.tamanho||i.variant_name||null,quantity:Number(i.quantity||i.qty||i.quantidade||1),unit_price:Number(i.price??i.preco??i.unit_price??i.valor??0)}));
-  return {items:apiItems,customer,shipping_amount:Number(shipping.price||0),shipping:{cep:customer.cep,method:shipping.name||"",amount:Number(shipping.price||0),address:customer.address,number:customer.number,complement:customer.complement,neighborhood:customer.neighborhood,city:customer.cityState.split("/")[0]?.trim()||"",state:customer.cityState.split("/")[1]?.trim()||""},payment};
-}
-async function createCheckoutOrder(customer,payment){
-  const res=await fetch(API+"/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildOrderPayload(customer,payment))});
-  const data=await res.json();
-  if(!res.ok)throw new Error(data.error||data.message||"Não foi possível criar o pagamento.");
-  return data;
-}
-function showPixResult(data){
-  const pm=data?.payment?.payment_method||data?.payment?.paymentMethod||{};
-  const qrCode=pm.qr_code||pm.qrCode||data?.payment?.qr_code||null;
-  const qrBase64=pm.qr_code_base64||pm.qrCodeBase64||data?.payment?.qr_code_base64||null;
-  if(!qrCode&&!qrBase64)throw new Error("O Mercado Pago não retornou o QR Code do Pix.");
-  const box=document.getElementById("pixResult"),qr=document.getElementById("pixQr"),copyWrap=document.getElementById("pixCopyWrap"),copy=document.getElementById("pixCopy"),status=document.getElementById("pixStatus");
-  box.style.display="block";status.textContent="Pix gerado. Escaneie o QR Code ou use o código Copia e Cola.";
-  if(qrBase64){qr.src="data:image/jpeg;base64,"+qrBase64;qr.style.display="block"}
-  if(qrCode){copy.value=qrCode;copyWrap.style.display="block"}
-  document.getElementById("pixCopyBtn").onclick=async()=>{try{await navigator.clipboard.writeText(copy.value)}catch{copy.focus();copy.select();document.execCommand("copy")}document.getElementById("pixCopyBtn").textContent="Copiado ✓";setTimeout(()=>document.getElementById("pixCopyBtn").textContent="Copiar",1800)};
-  box.scrollIntoView({behavior:"smooth",block:"center"});
-}
-async function startPix(){
-  const err=document.getElementById("paymentError");err.style.color="#ff7070";err.textContent="";
-  const btn=document.getElementById("pixStart");btn.disabled=true;btn.textContent="Gerando Pix...";
-  document.getElementById("pixResult").style.display="block";document.getElementById("pixStatus").textContent="Gerando QR Code Pix...";
-  try{const data=await createCheckoutOrder(checkoutCustomer,{method:"pix",payment_method:{id:"pix",type:"bank_transfer"}});sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));showPixResult(data);err.style.color="#8be28b";err.textContent="Pix gerado. Faça o pagamento pelo QR Code ou Pix Copia e Cola.";}catch(e){document.getElementById("pixResult").style.display="none";err.textContent=e.message;btn.disabled=false;btn.textContent="Pix — gerar QR Code"}
-}
-async function startCards(){
-  document.getElementById("paymentChoice").style.display="none";document.getElementById("paymentBrick_container").style.display="block";
-  try{
-    if(paymentBrickController){await paymentBrickController.unmount();paymentBrickController=null}
-    const mp=new MercadoPago("APP_USR-95cdfd02-dbbd-492e-bedb-442ef397d4d0"),bricksBuilder=mp.bricks();
-    paymentBrickController=await bricksBuilder.create("payment","paymentBrick_container",{initialization:{amount:Number((subtotal+Number(shipping.price||0)).toFixed(2)),payer:{email:checkoutCustomer.email,identification:{type:"CPF",number:clean(checkoutCustomer.document)}}},customization:{paymentMethods:{creditCard:"all",debitCard:"all",prepaidCard:"all",mercadoPago:["wallet_purchase"]}},callbacks:{onReady:()=>{document.getElementById("continue").textContent="Pagamento disponível"},onSubmit:async({selectedPaymentMethod,formData})=>{try{const data=await createCheckoutOrder(checkoutCustomer,formData);sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));document.getElementById("paymentError").style.color="#8be28b";document.getElementById("paymentError").textContent="Pagamento enviado. Aguarde a confirmação.";return data}catch(e){document.getElementById("paymentError").textContent=e.message;throw e}},onError:()=>{document.getElementById("paymentError").textContent="Erro no formulário de pagamento. Confira os dados e tente novamente."}}});
-  }catch(e){document.getElementById("paymentError").textContent=e.message||"Não foi possível carregar o pagamento.";document.getElementById("paymentChoice").style.display="grid";document.getElementById("paymentBrick_container").style.display="none"}
-}
 async function openPayment(){
   const required=[["name","Nome completo"],["email","E-mail"],["phone","Telefone"],["document","CPF"],["number","Número"],["address","Endereço"],["neighborhood","Bairro"],["cityState","Cidade/UF"]];
-  const missing=required.filter(([id])=>!document.getElementById(id).value.trim()),err=document.getElementById("error");
-  if(!cart.length){err.textContent="Seu carrinho está vazio.";return} if(!shipping){err.textContent="Selecione uma opção de frete.";return}
+  const missing=required.filter(([id])=>!document.getElementById(id).value.trim());
+  const err=document.getElementById("error");
+  if(!cart.length){err.textContent="Seu carrinho está vazio.";return}
+  if(!shipping){err.textContent="Selecione uma opção de frete.";return}
   if(missing.length){err.textContent="Preencha: "+missing.map(x=>x[1]).join(", ")+".";document.getElementById(missing[0][0]).focus();return}
-  err.textContent="";checkoutCustomer={name:document.getElementById("name").value.trim(),email:document.getElementById("email").value.trim(),phone:document.getElementById("phone").value.trim(),document:document.getElementById("document").value.trim(),number:document.getElementById("number").value.trim(),complement:document.getElementById("complement").value.trim(),address:document.getElementById("address").value.trim(),neighborhood:document.getElementById("neighborhood").value.trim(),cityState:document.getElementById("cityState").value.trim(),cep:document.getElementById("cep").value.trim()};
-  sessionStorage.setItem("uzi18k_checkout_draft",JSON.stringify({cart,shipping,customer:checkoutCustomer}));document.getElementById("continue").disabled=true;document.getElementById("continue").textContent="Pagamento disponível";document.getElementById("paymentSection").style.display="block";
-  document.getElementById("pixStart").onclick=startPix;document.getElementById("cardStart").onclick=startCards;
+  err.textContent="";
+  const customer={
+    name:document.getElementById("name").value.trim(),
+    email:document.getElementById("email").value.trim(),
+    phone:document.getElementById("phone").value.trim(),
+    document:document.getElementById("document").value.trim(),
+    number:document.getElementById("number").value.trim(),
+    complement:document.getElementById("complement").value.trim(),
+    address:document.getElementById("address").value.trim(),
+    neighborhood:document.getElementById("neighborhood").value.trim(),
+    cityState:document.getElementById("cityState").value.trim(),
+    cep:document.getElementById("cep").value.trim()
+  };
+  sessionStorage.setItem("uzi18k_checkout_draft",JSON.stringify({cart,shipping,customer}));
+  document.getElementById("continue").disabled=true;
+  document.getElementById("continue").textContent="Carregando pagamento...";
+  document.getElementById("paymentSection").style.display="block";
+  try{
+    if(paymentBrickController){await paymentBrickController.unmount();paymentBrickController=null}
+    const mp=new MercadoPago("APP_USR-95cdfd02-dbbd-492e-bedb-442ef397d4d0");
+    const bricksBuilder=mp.bricks();
+    paymentBrickController=await bricksBuilder.create("payment","paymentBrick_container",{
+      initialization:{
+        amount:Number((subtotal+Number(shipping.price||0)).toFixed(2)),
+        payer:{email:customer.email,identification:{type:"CPF",number:clean(customer.document)}}
+      },
+      customization:{
+        paymentMethods:{
+          creditCard:"all",
+          debitCard:"all",
+          prepaidCard:"all",
+          bankTransfer:["pix"],
+          mercadoPago:["wallet_purchase"]
+        }
+      },
+      callbacks:{
+        onReady:()=>{document.getElementById("continue").textContent="Pagamento disponível"},
+        onSubmit:async({selectedPaymentMethod,formData})=>{
+          const paymentError=document.getElementById("paymentError");
+          paymentError.textContent="";
+          try{
+            const apiItems=cart.map(i=>({
+              product_key:i.product_key||i.productKey||i.key||i.productId||i.id,
+              product_name:i.name||i.product_name||i.title||i.nome||"Produto",
+              variant:i.variant||i.size||i.tamanho||null,
+              quantity:Number(i.quantity||i.qty||i.quantidade||1),
+              unit_price:Number(i.price??i.preco??i.unit_price??i.valor??0)
+            }));
+            const payload={
+              items:apiItems,
+              customer,
+              shipping_amount:Number(shipping.price||0),
+              shipping:{
+                cep:customer.cep,
+                method:shipping.name||"",
+                amount:Number(shipping.price||0),
+                address:customer.address,
+                number:customer.number,
+                complement:customer.complement,
+                neighborhood:customer.neighborhood,
+                city:customer.cityState.split("/")[0]?.trim()||"",
+                state:customer.cityState.split("/")[1]?.trim()||""
+              },
+              payment:formData
+            };
+            const res=await fetch(API+"/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+            const data=await res.json();
+            if(!res.ok)throw new Error(data.error||data.message||"Não foi possível processar o pagamento.");
+            sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));
+            const pm=data?.payment?.payment_method||data?.payment?.paymentMethod||{};
+            const qrCode=pm.qr_code||pm.qrCode||null;
+            const qrBase64=pm.qr_code_base64||pm.qr_code_base64||pm.qrCodeBase64||null;
+            if((selectedPaymentMethod==="pix"||pm.id==="pix")&&(qrCode||qrBase64)){
+              const box=document.getElementById("pixResult");
+              const qr=document.getElementById("pixQr");
+              const copyWrap=document.getElementById("pixCopyWrap");
+              const copy=document.getElementById("pixCopy");
+              const status=document.getElementById("pixStatus");
+              box.style.display="block";
+              status.textContent="Pix gerado. Escaneie o QR Code ou use o código Copia e Cola.";
+              if(qrBase64){qr.src="data:image/jpeg;base64,"+qrBase64;qr.style.display="block"}
+              if(qrCode){copy.value=qrCode;copyWrap.style.display="block"}
+              document.getElementById("pixCopyBtn").onclick=async()=>{
+                try{await navigator.clipboard.writeText(copy.value);document.getElementById("pixCopyBtn").textContent="Copiado ✓";setTimeout(()=>document.getElementById("pixCopyBtn").textContent="Copiar",1800)}
+                catch{copy.focus();copy.select();document.execCommand("copy");document.getElementById("pixCopyBtn").textContent="Copiado ✓"}
+              };
+              box.scrollIntoView({behavior:"smooth",block:"center"});
+            }
+            paymentError.style.color="#8be28b";
+            paymentError.textContent="Pagamento enviado. Aguarde a confirmação.";
+            return data;
+          }catch(e){paymentError.textContent=e.message;throw e}
+        },
+        onError:error=>{document.getElementById("paymentError").textContent="Erro no formulário de pagamento. Confira os dados e tente novamente.";console.error(error)}
+      }
+    });
+  }catch(e){
+    document.getElementById("paymentError").textContent=e.message||"Não foi possível carregar o pagamento.";
+    document.getElementById("continue").disabled=false;
+    document.getElementById("continue").textContent="Continuar para pagamento";
+  }
 }
 document.getElementById("continue").onclick=openPayment;</script>
 </body></html>
