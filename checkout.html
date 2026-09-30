@@ -203,8 +203,8 @@ async function openPayment(){
             sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));
             paymentError.style.color="#8be28b";
             paymentError.textContent="Pagamento enviado. Aguarde a confirmação.";
-            resolve();
-          }catch(e){paymentError.textContent=e.message;reject(e)}
+            return data;
+          }catch(e){paymentError.textContent=e.message;throw e}
         },
         onError:error=>{document.getElementById("paymentError").textContent="Erro no formulário de pagamento. Confira os dados e tente novamente.";console.error(error)}
       }
