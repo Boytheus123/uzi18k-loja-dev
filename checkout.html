@@ -41,6 +41,7 @@
 </div>
 <script>
 const API="https://meulxqleymbjkedaagby.supabase.co/functions/v1/checkout-api";
+const SHIPPING_API="https://meulxqleymbjkedaagby.supabase.co/functions/v1/shipping-quote";
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
 const clean=v=>String(v||"").replace(/\D/g,"");
 
@@ -125,7 +126,7 @@ document.getElementById("quote").onclick=async()=>{
  const el=document.getElementById("shipping");el.innerHTML='<span class="muted">Calculando...</span>';
  try{
   const apiItems=cart.map(i=>({product_key:i.product_key||i.productKey||i.key||i.productId||i.id,variant:i.variant||i.size||i.tamanho||null,quantity:Number(i.quantity||i.qty||i.quantidade||1),unit_price:Number(i.price??i.preco??i.unit_price??i.valor??0)}));
-  const res=await fetch(API+"/shipping/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({destination_cep:cep,items:apiItems})});
+  const res=await fetch(SHIPPING_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({destination_cep:cep,items:apiItems})});
   const data=await res.json();if(!res.ok)throw new Error(data.error||"Erro ao calcular");
   el.innerHTML=(data.quotes||[]).map((q,n)=>'<div class="option" data-i="'+n+'"><strong>'+q.name+'</strong><br><span class="muted">'+(q.company||"")+(q.delivery_time?" · "+q.delivery_time+" dias úteis":"")+'</span><br><strong>'+money(q.price)+'</strong></div>').join("")||'<span class="muted">Nenhuma opção disponível.</span>';
   el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("continue").disabled=false});
@@ -190,10 +191,17 @@ async function openPayment(){
             const payload={
               items:apiItems,
               customer,
+              shipping_amount:Number(shipping.price||0),
               shipping:{
                 cep:customer.cep,
                 method:shipping.name||"",
-                amount:Number(shipping.price||0)
+                amount:Number(shipping.price||0),
+                address:customer.address,
+                number:customer.number,
+                complement:customer.complement,
+                neighborhood:customer.neighborhood,
+                city:customer.cityState.split("/")[0]?.trim()||"",
+                state:customer.cityState.split("/")[1]?.trim()||""
               },
               payment:formData
             };
