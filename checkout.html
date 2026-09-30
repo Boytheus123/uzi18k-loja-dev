@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Checkout | UZI18K</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:28px 18px}.brand{display:block;width:205px;height:auto;margin:0 0 18px 0}.brand img{display:block;width:100%;height:auto;object-fit:contain}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}.card{background:#111;border:1px solid #292929;border-radius:14px;padding:20px}.title{font-size:22px;margin:0 0 18px}.muted{color:#aaa}.field{margin:12px 0}.field label{display:block;font-size:13px;color:#bbb;margin-bottom:6px}.field input{width:100%;padding:13px;border-radius:9px;border:1px solid #333;background:#181818;color:#fff}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;padding:14px;border:0;border-radius:10px;background:#d4af37;color:#080808;font-weight:800;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.option{padding:12px;border:1px solid #333;border-radius:10px;margin:8px 0;cursor:pointer}.option:hover{border-color:#d4af37}.error{color:#ff7070;margin-top:10px}.total{font-size:22px;font-weight:800}.back{color:#d4af37;text-decoration:none;display:inline-block;margin-bottom:18px}@media(max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+*{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:28px 18px}.brand{display:block;width:205px;height:auto;margin:0 0 18px 0}.brand img{display:block;width:100%;height:auto;object-fit:contain}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}.card{background:#111;border:1px solid #292929;border-radius:14px;padding:20px}.title{font-size:22px;margin:0 0 18px}.muted{color:#aaa}.field{margin:12px 0}.field label{display:block;font-size:13px;color:#bbb;margin-bottom:6px}.field input{width:100%;padding:13px;border-radius:9px;border:1px solid #333;background:#181818;color:#fff}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;padding:14px;border:0;border-radius:10px;background:#d4af37;color:#080808;font-weight:800;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.option{padding:12px;border:1px solid #333;border-radius:10px;margin:8px 0;cursor:pointer}.option:hover{border-color:#d4af37}.error{color:#ff7070;margin-top:10px}.payment-status{display:none;margin-top:14px;padding:14px;border-radius:10px;border:1px solid #333;background:#151515}.payment-status strong{display:block;margin-bottom:6px}.total{font-size:22px;font-weight:800}.back{color:#d4af37;text-decoration:none;display:inline-block;margin-bottom:18px}@media(max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
 </style>
 <script src="https://sdk.mercadopago.com/js/v2"></script></head>
 <body>
@@ -35,7 +35,7 @@
 <div style="display:flex;justify-content:space-between;margin-top:10px"><span>Frete</span><strong id="freight">A calcular</strong></div>
 <hr style="border-color:#292929;margin:18px 0">
 <div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div>
-<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div id="pixResult" style="display:none;margin-top:16px;padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515"><h3 style="margin:0 0 10px;font-size:16px">Pague com Pix</h3><div id="pixStatus" class="muted" style="font-size:13px;margin-bottom:12px">Aguardando geração do Pix...</div><img id="pixQr" alt="QR Code Pix" style="display:none;width:220px;height:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:0 auto 14px"><div id="pixCopyWrap" style="display:none"><label style="display:block;font-size:12px;color:#bbb;margin-bottom:6px">Pix Copia e Cola</label><div style="display:flex;gap:8px"><input id="pixCopy" readonly style="flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid #333;background:#0f0f0f;color:#fff;font-size:11px"><button type="button" class="btn" id="pixCopyBtn" style="width:auto;padding:12px 16px">Copiar</button></div></div></div><div class="error" id="paymentError"></div></div>
+<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div id="pixResult" style="display:none;margin-top:16px;padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515"><h3 style="margin:0 0 10px;font-size:16px">Pague com Pix</h3><div id="pixStatus" class="muted" style="font-size:13px;margin-bottom:12px">Aguardando geração do Pix...</div><img id="pixQr" alt="QR Code Pix" style="display:none;width:220px;height:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:0 auto 14px"><div id="pixCopyWrap" style="display:none"><label style="display:block;font-size:12px;color:#bbb;margin-bottom:6px">Pix Copia e Cola</label><div style="display:flex;gap:8px"><input id="pixCopy" readonly style="flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid #333;background:#0f0f0f;color:#fff;font-size:11px"><button type="button" class="btn" id="pixCopyBtn" style="width:auto;padding:12px 16px">Copiar</button></div></div></div><div class="error" id="paymentError"></div><div class="payment-status" id="paymentStatus"><strong id="paymentStatusTitle">Aguardando pagamento</strong><span class="muted" id="paymentStatusText">Estamos aguardando a confirmação do Mercado Pago.</span></div></div>
 </aside>
 </div>
 </div>
@@ -132,6 +132,28 @@ document.getElementById("quote").onclick=async()=>{
   el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("continue").disabled=false});
  }catch(e){el.innerHTML='<span class="error">'+e.message+"</span>"}
 };
+function startPaymentStatusPolling(orderId){
+  const box=document.getElementById("paymentStatus"),title=document.getElementById("paymentStatusTitle"),text=document.getElementById("paymentStatusText");
+  box.style.display="block";title.textContent="Aguardando pagamento";text.textContent="Estamos aguardando a confirmação do Mercado Pago.";
+  let tries=0;
+  const poll=async()=>{
+    tries++;
+    try{
+      const res=await fetch(API+"/order-status?order_id="+encodeURIComponent(orderId));
+      const data=await res.json(); const o=data.order||{}; const s=String(o.status||"");
+      if(s==="paid"){
+        title.textContent="Pagamento aprovado ✓";title.style.color="#8be28b";text.textContent="Seu pagamento foi confirmado e seu pedido está sendo processado.";
+        return;
+      }
+      if(["failed","cancelled","refunded"].includes(s)){
+        title.textContent=s==="cancelled"?"Pagamento cancelado":"Pagamento não aprovado";title.style.color="#ff7070";text.textContent="O pagamento não foi confirmado. Se necessário, tente novamente.";
+        return;
+      }
+    }catch(e){console.error("payment_status_poll",e)}
+    if(tries<120)setTimeout(poll,5000);
+  };
+  poll();
+}
 let paymentBrickController=null;
 async function openPayment(){
   const required=[["name","Nome completo"],["email","E-mail"],["phone","Telefone"],["document","CPF"],["number","Número"],["address","Endereço"],["neighborhood","Bairro"],["cityState","Cidade/UF"]];
@@ -209,7 +231,7 @@ async function openPayment(){
             const res=await fetch(API+"/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
             const data=await res.json();
             if(!res.ok){const d=data?.details;const detail=d?.message||d?.error||d?.cause?.[0]?.description||d?.cause?.[0]?.code||d?.status_detail||"";throw new Error((data.error||data.message||"Não foi possível processar o pagamento.")+(detail?" — "+detail:""));}
-            sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));
+            sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));\n            if(data?.order_id) startPaymentStatusPolling(data.order_id);
             const pm=data?.payment?.payment_method||data?.payment?.paymentMethod||{};
             const qrCode=pm.qr_code||pm.qrCode||null;
             const qrBase64=pm.qr_code_base64||pm.qr_code_base64||pm.qrCodeBase64||null;
