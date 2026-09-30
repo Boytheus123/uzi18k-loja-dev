@@ -35,7 +35,7 @@
 <div style="display:flex;justify-content:space-between;margin-top:10px"><span>Frete</span><strong id="freight">A calcular</strong></div>
 <hr style="border-color:#292929;margin:18px 0">
 <div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div>
-<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div class="error" id="paymentError"></div></div>
+<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div id="pixResult" style="display:none;margin-top:16px;padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515"><h3 style="margin:0 0 10px;font-size:16px">Pague com Pix</h3><div id="pixStatus" class="muted" style="font-size:13px;margin-bottom:12px">Aguardando geração do Pix...</div><img id="pixQr" alt="QR Code Pix" style="display:none;width:220px;height:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:0 auto 14px"><div id="pixCopyWrap" style="display:none"><label style="display:block;font-size:12px;color:#bbb;margin-bottom:6px">Pix Copia e Cola</label><div style="display:flex;gap:8px"><input id="pixCopy" readonly style="flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid #333;background:#0f0f0f;color:#fff;font-size:11px"><button type="button" class="btn" id="pixCopyBtn" style="width:auto;padding:12px 16px">Copiar</button></div></div></div><div class="error" id="paymentError"></div></div>
 </aside>
 </div>
 </div>
@@ -209,6 +209,25 @@ async function openPayment(){
             const data=await res.json();
             if(!res.ok)throw new Error(data.error||data.message||"Não foi possível processar o pagamento.");
             sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));
+            const pm=data?.payment?.payment_method||data?.payment?.paymentMethod||{};
+            const qrCode=pm.qr_code||pm.qrCode||null;
+            const qrBase64=pm.qr_code_base64||pm.qr_code_base64||pm.qrCodeBase64||null;
+            if((selectedPaymentMethod==="pix"||pm.id==="pix")&&(qrCode||qrBase64)){
+              const box=document.getElementById("pixResult");
+              const qr=document.getElementById("pixQr");
+              const copyWrap=document.getElementById("pixCopyWrap");
+              const copy=document.getElementById("pixCopy");
+              const status=document.getElementById("pixStatus");
+              box.style.display="block";
+              status.textContent="Pix gerado. Escaneie o QR Code ou use o código Copia e Cola.";
+              if(qrBase64){qr.src="data:image/jpeg;base64,"+qrBase64;qr.style.display="block"}
+              if(qrCode){copy.value=qrCode;copyWrap.style.display="block"}
+              document.getElementById("pixCopyBtn").onclick=async()=>{
+                try{await navigator.clipboard.writeText(copy.value);document.getElementById("pixCopyBtn").textContent="Copiado ✓";setTimeout(()=>document.getElementById("pixCopyBtn").textContent="Copiar",1800)}
+                catch{copy.focus();copy.select();document.execCommand("copy");document.getElementById("pixCopyBtn").textContent="Copiado ✓"}
+              };
+              box.scrollIntoView({behavior:"smooth",block:"center"});
+            }
             paymentError.style.color="#8be28b";
             paymentError.textContent="Pagamento enviado. Aguarde a confirmação.";
             return data;
