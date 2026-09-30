@@ -15,7 +15,7 @@
 <div class="grid">
 <section class="card">
 <h1 class="title">Finalizar compra</h1>
-<div class="field"><label>CEP de entrega</label><input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></div>
+<div class="field"><label>CEP de entrega</label><input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000"><div id="cepStatus" class="muted" style="margin-top:6px;font-size:12px"></div></div>
 <button class="btn" id="quote">Calcular frete</button>
 <div id="shipping" style="margin-top:18px"></div>
 <hr style="border-color:#292929;margin:22px 0">
@@ -94,7 +94,32 @@ if(!cart.length){itemsEl.textContent="Seu carrinho está vazio."}else{
 }
 document.getElementById("subtotal").textContent=money(subtotal);
 document.getElementById("total").textContent=money(subtotal);
-document.getElementById("cep").addEventListener("input",e=>{let v=clean(e.target.value).slice(0,8);e.target.value=v.length>5?v.slice(0,5)+"-"+v.slice(5):v});
+let cepTimer;
+async function lookupCep(cep){
+  const status=document.getElementById("cepStatus");
+  if(cep.length!==8){status.textContent="";return}
+  status.textContent="Buscando endereço...";
+  try{
+    const r=await fetch("https://viacep.com.br/ws/"+cep+"/json/");
+    const d=await r.json();
+    if(d.erro) throw new Error("CEP não encontrado");
+    document.getElementById("address").value=d.logradouro||"";
+    document.getElementById("neighborhood").value=d.bairro||"";
+    document.getElementById("cityState").value=(d.localidade||"")+(d.uf?" / "+d.uf:"");
+    status.textContent="Endereço encontrado. Confira os dados antes de continuar.";
+  }catch(e){
+    status.textContent=e.message;
+    document.getElementById("address").value="";
+    document.getElementById("neighborhood").value="";
+    document.getElementById("cityState").value="";
+  }
+}
+document.getElementById("cep").addEventListener("input",e=>{
+  let v=clean(e.target.value).slice(0,8);
+  e.target.value=v.length>5?v.slice(0,5)+"-"+v.slice(5):v;
+  clearTimeout(cepTimer);
+  cepTimer=setTimeout(()=>lookupCep(clean(v)),350);
+});
 document.getElementById("quote").onclick=async()=>{
  const cep=clean(document.getElementById("cep").value); if(cep.length!==8)return;
  const el=document.getElementById("shipping");el.innerHTML='<span class="muted">Calculando...</span>';
@@ -105,6 +130,17 @@ document.getElementById("quote").onclick=async()=>{
   el.innerHTML=(data.quotes||[]).map((q,n)=>'<div class="option" data-i="'+n+'"><strong>'+q.name+'</strong><br><span class="muted">'+(q.company||"")+(q.delivery_time?" · "+q.delivery_time+" dias úteis":"")+'</span><br><strong>'+money(q.price)+'</strong></div>').join("")||'<span class="muted">Nenhuma opção disponível.</span>';
   el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("continue").disabled=false});
  }catch(e){el.innerHTML='<span class="error">'+e.message+"</span>"}
+};
+document.getElementById("continue").onclick=()=>{
+  const required=[["name","Nome completo"],["email","E-mail"],["phone","Telefone"],["document","CPF"],["number","Número"],["address","Endereço"],["neighborhood","Bairro"],["cityState","Cidade/UF"]];
+  const missing=required.filter(([id])=>!document.getElementById(id).value.trim());
+  const err=document.getElementById("error");
+  if(!cart.length){err.textContent="Seu carrinho está vazio.";return}
+  if(!shipping){err.textContent="Selecione uma opção de frete.";return}
+  if(missing.length){err.textContent="Preencha: "+missing.map(x=>x[1]).join(", ")+".";document.getElementById(missing[0][0]).focus();return}
+  err.textContent="";
+  sessionStorage.setItem("uzi18k_checkout_draft",JSON.stringify({cart,shipping,customer:{name:name.value,email:email.value,phone:phone.value,document:document.value,number:number.value,complement:complement.value,address:address.value,neighborhood:neighborhood.value,cityState:cityState.value,cep:cep.value}}));
+  alert("Dados conferidos. Próximo passo: pagamento Mercado Pago.");
 };
 </script>
 </body></html>
