@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkout | UZI18K</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080808;color:#f5f5f5;font-family:Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:28px 18px}.brand{font-weight:800;letter-spacing:2px;color:#d4af37;font-size:24px;margin-bottom:24px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}.card{background:#111;border:1px solid #292929;border-radius:14px;padding:20px}.title{font-size:22px;margin:0 0 18px}.muted{color:#aaa}.field{margin:12px 0}.field label{display:block;font-size:13px;color:#bbb;margin-bottom:6px}.field input{width:100%;padding:13px;border-radius:9px;border:1px solid #333;background:#181818;color:#fff}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;padding:14px;border:0;border-radius:10px;background:#d4af37;color:#080808;font-weight:800;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.option{padding:12px;border:1px solid #333;border-radius:10px;margin:8px 0;cursor:pointer}.option:hover{border-color:#d4af37}.error{color:#ff7070;margin-top:10px}.total{font-size:22px;font-weight:800}.back{color:#d4af37;text-decoration:none;display:inline-block;margin-bottom:18px}@media(max-width:760px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="brand">UZI18K</div>
+<a class="back" href="./">← Voltar para a loja</a>
+<div class="grid">
+<section class="card">
+<h1 class="title">Finalizar compra</h1>
+<div class="field"><label>CEP de entrega</label><input id="cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></div>
+<button class="btn" id="quote">Calcular frete</button>
+<div id="shipping" style="margin-top:18px"></div>
+<hr style="border-color:#292929;margin:22px 0">
+<h2 style="font-size:17px">Seus dados</h2>
+<div class="field"><label>Nome completo</label><input id="name"></div>
+<div class="field"><label>E-mail</label><input id="email" type="email"></div>
+<div class="row"><div class="field"><label>Telefone</label><input id="phone"></div><div class="field"><label>CPF</label><input id="document"></div></div>
+<div class="row"><div class="field"><label>Número</label><input id="number"></div><div class="field"><label>Complemento</label><input id="complement"></div></div>
+<div class="field"><label>Endereço</label><input id="address"></div>
+<div class="row"><div class="field"><label>Bairro</label><input id="neighborhood"></div><div class="field"><label>Cidade/UF</label><input id="cityState"></div></div>
+<div class="error" id="error"></div>
+</section>
+<aside class="card">
+<h2 class="title">Resumo</h2>
+<div id="items" class="muted">Carregando carrinho...</div>
+<div style="display:flex;justify-content:space-between;margin-top:20px"><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
+<div style="display:flex;justify-content:space-between;margin-top:10px"><span>Frete</span><strong id="freight">A calcular</strong></div>
+<hr style="border-color:#292929;margin:18px 0">
+<div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div>
+<button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button>
+</aside>
+</div>
+</div>
+<script>
+const API="https://meulxqleymbjkedaagby.supabase.co/functions/v1/checkout-api";
+const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v||0));
+const clean=v=>String(v||"").replace(/\D/g,"");
+let cart=[],subtotal=0,shipping=null;
+try{cart=JSON.parse(localStorage.getItem("cart")||localStorage.getItem("carrinho")||"[]")}catch{}
+const itemsEl=document.getElementById("items");
+if(!cart.length){itemsEl.textContent="Seu carrinho está vazio."}else{
+ itemsEl.innerHTML=cart.map(i=>{const q=Number(i.quantity||i.qty||1),p=Number(i.price||i.preco||0);return '<div style="padding:9px 0;border-bottom:1px solid #292929">'+(i.name||i.product_name||"Produto")+' <span class="muted">× '+q+'</span><div>'+money(p*q)+'</div></div>'}).join("");
+ subtotal=cart.reduce((s,i)=>s+Number(i.price||i.preco||0)*Number(i.quantity||i.qty||1),0);
+}
+document.getElementById("subtotal").textContent=money(subtotal);
+document.getElementById("total").textContent=money(subtotal);
+document.getElementById("cep").addEventListener("input",e=>{let v=clean(e.target.value).slice(0,8);e.target.value=v.length>5?v.slice(0,5)+"-"+v.slice(5):v});
+document.getElementById("quote").onclick=async()=>{
+ const cep=clean(document.getElementById("cep").value); if(cep.length!==8)return;
+ const el=document.getElementById("shipping");el.innerHTML='<span class="muted">Calculando...</span>';
+ try{
+  const apiItems=cart.map(i=>({product_key:i.product_key||i.productKey||i.key,variant:i.variant||i.size||null,quantity:Number(i.quantity||i.qty||1),unit_price:Number(i.price||i.preco||0)}));
+  const res=await fetch(API+"/shipping/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({destination_cep:cep,items:apiItems})});
+  const data=await res.json();if(!res.ok)throw new Error(data.error||"Erro ao calcular");
+  el.innerHTML=(data.quotes||[]).map((q,n)=>'<div class="option" data-i="'+n+'"><strong>'+q.name+'</strong><br><span class="muted">'+(q.company||"")+(q.delivery_time?" · "+q.delivery_time+" dias úteis":"")+'</span><br><strong>'+money(q.price)+'</strong></div>').join("")||'<span class="muted">Nenhuma opção disponível.</span>';
+  el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("continue").disabled=false});
+ }catch(e){el.innerHTML='<span class="error">'+e.message+"</span>"}
+};
+</script>
+</body></html>
