@@ -31,6 +31,11 @@ jobs:
           if inventory_marker not in s:
               s = s.replace("</body>", inventory_script + "</body>")
 
+          checkout_marker = "uzi-checkout-redirect"
+          checkout_script = '''<script id="uzi-checkout-redirect">(function(){document.addEventListener("click",function(e){var el=e.target.closest("button,a,[role="+"\\"button\\""+"]");if(!el)return;var t=(el.textContent||"").replace(/\\s+/g," ").trim().toUpperCase();if(t==="FINALIZAR PEDIDO"||t.includes("FINALIZAR PEDIDO")){e.preventDefault();e.stopImmediatePropagation();window.location.href="./checkout.html";}},true);})();</script>'''
+          if checkout_marker not in s:
+              s = s.replace("</body>", checkout_script + "</body>")
+
           style = """<style>
           :root{--gold:#d4af37;--bg:#050505;--card:#101010;--text:#f5f5f5;--muted:#aaa;--border:#242424}
           *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.65}
