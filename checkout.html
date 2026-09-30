@@ -208,7 +208,7 @@ async function openPayment(){
             };
             const res=await fetch(API+"/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
             const data=await res.json();
-            if(!res.ok)throw new Error(data.error||data.message||"Não foi possível processar o pagamento.");
+            if(!res.ok){const d=data?.details;const detail=d?.message||d?.error||d?.cause?.[0]?.description||d?.cause?.[0]?.code||d?.status_detail||"";throw new Error((data.error||data.message||"Não foi possível processar o pagamento.")+(detail?" — "+detail:""));}
             sessionStorage.setItem("uzi18k_checkout_result",JSON.stringify(data));
             const pm=data?.payment?.payment_method||data?.payment?.paymentMethod||{};
             const qrCode=pm.qr_code||pm.qrCode||null;
