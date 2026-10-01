@@ -81,120 +81,53 @@
     }
     return "";
   }
-  function cartItemFor(btn){
-    var cur=btn, depth=0, best=null;
-    while(cur && depth++<14){
-      var txt=String(cur.textContent||"").replace(/\s+/g," ").trim();
-      var key=keyFromText(txt);
-      var hasSize=/\bTamanho\s*:\s*\d+(?:[.,]\d+)?\s*cm\b/i.test(txt);
-      var hasRemove=/\bremover\b/i.test(txt);
-      var hasQty=/[−-]\s*\d+\s*\+/.test(txt);
-      if(key && (hasSize || hasRemove) && hasQty){
-        best=cur;
-        break;
-      }
-      cur=cur.parentElement;
-    }
-    return best;
-  }
-
-  function getKey(item){
-    var cur=item, depth=0;
-    while(cur && depth++<6){
-      var raw=findAttr(cur,["data-product-key","data-product-key-id","data-product","data-key","data-product-id"]);
-      if(raw){
-        if(productMap[raw]) return productMap[raw];
-        if(rows.some(function(r){return r.product_key===raw;})) return raw;
-      }
-      cur=cur.parentElement;
-    }
-    return keyFromText(item && item.textContent);
-  }
-
-  function getVariant(item){
-    var cur=item, depth=0;
-    while(cur && depth++<6){
-      var raw=findAttr(cur,["data-variant","data-size","data-product-variant"]);
-      var s=sizeNorm(raw);
-      if(s) return s;
-      cur=cur.parentElement;
-    }
-    var txt=String(item && item.textContent||"");
-    var m=txt.match(/\bTamanho\s*:\s*(\d+(?:[.,]\d+)?)\s*cm\b/i);
-    return m ? m[1].replace(",",".")+"cm" : sizeNorm(txt);
-  }
-
-  function getQty(item){
-    var input=item && item.querySelector && item.querySelector("input[type=number],input[data-quantity]");
-    if(input && input.value!=="" && isFinite(Number(input.value))) return Number(input.value);
-    var raw=findAttr(item,["data-quantity","data-qty","data-qtd"]);
-    if(raw!=="" && isFinite(Number(raw))) return Number(raw);
-    var nodes=item && item.querySelectorAll ? item.querySelectorAll("*") : [];
-    for(var i=0;i<nodes.length;i++){
-      var txt=String(nodes[i].textContent||"").replace(/\s+/g," ").trim();
-      var m=txt.match(/^[−-]\s*(\d+)\s*\+$/);
-      if(m) return Number(m[1]);
-    }
-    var whole=String(item && item.textContent||"").replace(/\s+/g," ").trim();
-    var m2=whole.match(/[−-]\s*(\d+)\s*\+/);
-    return m2 ? Number(m2[1]) : null;
-  }
-
-  function getRow(item){
-    var key=getKey(item), variant=getVariant(item);
+  function cartContext(btn){
+    var qbtn=btn.closest && btn.closest("button[data-v108-qty]");
+    if(!qbtn) return null;
+    var idx=Number(qbtn.getAttribute("data-v108-index"));
+    if(!isFinite(idx) || !window.__UZI18K_CART || !window.__UZI18K_CART[idx]) return null;
+    var cartItem=window.__UZI18K_CART[idx];
+    var domItem=qbtn.closest(".uzi-cart-item") || qbtn.parentElement;
+    var key="";
+    var rawId=String(cartItem.id||"");
+    var baseId=rawId.split("|")[0];
+    if(productMap[baseId]) key=productMap[baseId];
+    if(!key) key=keyFromText(String(cartItem.name||""));
+    var variant=sizeNorm(cartItem.size||"");
     if(!key) return null;
     var candidates=rows.filter(function(r){return r.product_key===key && r.active!==false;});
-    if(!candidates.length) return null;
-    if(variant){
-      var exact=candidates.find(function(r){
-        return sizeNorm(r.variant)===sizeNorm(variant) || norm(r.variant)===norm(variant);
-      });
-      if(exact) return exact;
-    }
-    if(candidates.length===1) return candidates[0];
-    return null;
-  }
-
-  function resolveContext(btn){
-    var item=cartItemFor(btn);
-    if(!item) return null;
-    var row=getRow(item);
+    var row=null;
+    if(variant) row=candidates.find(function(r){return sizeNorm(r.variant)===variant;})||null;
+    if(!row && candidates.length===1) row=candidates[0];
     if(!row) return null;
-    return {item:item,row:row,qty:getQty(item)};
+    return {index:idx,cartItem:cartItem,domItem:domItem,row:row,qty:Number(cartItem.qty||0)};
   }
 
-  async function load(){
-    try{
-      var u=SUPABASE_URL+"/rest/v1/inventory_items?select=product_key,variant,stock,active&active=eq.true";
-      var res=await fetch(u,{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
-      if(!res.ok) throw new Error("inventory "+res.status);
-      rows=await res.json();
-      loaded=true;
-      decorate();
-    }catch(e){ console.warn("[UZI18K] cart stock guard:",e); }
+  function decorate(){
+    document.querySelectorAll('button[data-v108-qty="1"]').forEach(function(btn){
+      var ctx=cartContext(btn);
+      if(!ctx) return;
+      var stock=Number(ctx.row.stock||0);
+      var atMax=ctx.qty>=stock;
+      btn.disabled=stock<=0 || atMax;
+      btn.setAttribute("aria-disabled",String(btn.disabled));
+      btn.title=stock<=0 ? "Esgotado" : (atMax ? "Máximo disponível: "+stock : "");
+      btn.style.opacity=btn.disabled?".45":"";
+      btn.style.cursor=btn.disabled?"not-allowed":"";
+      var item=ctx.domItem;
+      if(item){
+        var msg=item.querySelector(".uzi-stock-limit-msg");
+        if(atMax && stock>0){
+          if(!msg){
+            msg=document.createElement("div");
+            msg.className="uzi-stock-limit-msg";
+            msg.style.cssText="font-size:11px;color:#aaa;margin-top:3px;";
+            item.appendChild(msg);
+          }
+          msg.textContent="Máximo disponível: "+stock;
+        }else if(msg) msg.remove();
+      }
+    });
   }
 
-  document.addEventListener("click",function(e){
-    var btn=e.target.closest && e.target.closest("button");
-    if(!btn || !isPlus(btn) || !loaded) return;
-    var ctx=resolveContext(btn);
-    if(!ctx) return;
-    var item=ctx.item, row=ctx.row;
-    var stock=Number(row.stock||0), qty=ctx.qty!==null?ctx.qty:getQty(item);
-    if(stock<=0 || (qty!==null && qty>=stock)){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      toast(stock<=0 ? "Produto esgotado." : "Máximo disponível: "+stock);
-      decorate();
-    }
-  },true);
-
-  var mo=new MutationObserver(function(){ decorate(); });
-  function start(){
-    load();
-    mo.observe(document.body,{childList:true,subtree:true});
-    setInterval(decorate,1200);
-  }
-  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",start,{once:true});
-  else start();
-})();
+;
