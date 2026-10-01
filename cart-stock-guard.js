@@ -130,7 +130,6 @@
     }
   },true);
 
-  var observer=new MutationObserver(function(){decorate();});
-  function start(){load();observer.observe(document.body,{childList:true,subtree:true});setInterval(decorate,1000);}
+  function start(){load();setInterval(decorate,700);}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
