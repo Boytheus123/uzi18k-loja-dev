@@ -81,21 +81,26 @@
     }
     return "";
   }
-  function itemFor(el){
-    var cur=el, depth=0;
-    while(cur && depth++<12){
-      if(cur.matches && cur.matches("[data-product-key],[data-product],[data-key],[data-variant]")) return cur;
+  function cartItemFor(btn){
+    var cur=btn, depth=0, best=null;
+    while(cur && depth++<14){
       var txt=String(cur.textContent||"").replace(/\s+/g," ").trim();
-      var hasQty=/[−-]\s*\d+\s*\+/.test(txt);
+      var key=keyFromText(txt);
+      var hasSize=/\bTamanho\s*:\s*\d+(?:[.,]\d+)?\s*cm\b/i.test(txt);
       var hasRemove=/\bremover\b/i.test(txt);
-      if((hasQty||hasRemove) && txt.length>20) return cur;
+      var hasQty=/[−-]\s*\d+\s*\+/.test(txt);
+      if(key && (hasSize || hasRemove) && hasQty){
+        best=cur;
+        break;
+      }
       cur=cur.parentElement;
     }
-    return el.parentElement;
+    return best;
   }
+
   function getKey(item){
     var cur=item, depth=0;
-    while(cur && depth++<8){
+    while(cur && depth++<6){
       var raw=findAttr(cur,["data-product-key","data-product-key-id","data-product","data-key","data-product-id"]);
       if(raw){
         if(productMap[raw]) return productMap[raw];
@@ -103,49 +108,47 @@
       }
       cur=cur.parentElement;
     }
-    cur=item; depth=0;
-    while(cur && depth++<8){
-      var byText=keyFromText(cur.textContent||"");
-      if(byText) return byText;
-      cur=cur.parentElement;
-    }
-    return "";
+    return keyFromText(item && item.textContent);
   }
+
   function getVariant(item){
     var cur=item, depth=0;
-    while(cur && depth++<8){
+    while(cur && depth++<6){
       var raw=findAttr(cur,["data-variant","data-size","data-product-variant"]);
       var s=sizeNorm(raw);
       if(s) return s;
       cur=cur.parentElement;
     }
-    return sizeNorm(item && item.textContent);
+    var txt=String(item && item.textContent||"");
+    var m=txt.match(/\bTamanho\s*:\s*(\d+(?:[.,]\d+)?)\s*cm\b/i);
+    return m ? m[1].replace(",",".")+"cm" : sizeNorm(txt);
   }
+
   function getQty(item){
     var input=item && item.querySelector && item.querySelector("input[type=number],input[data-quantity]");
     if(input && input.value!=="" && isFinite(Number(input.value))) return Number(input.value);
     var raw=findAttr(item,["data-quantity","data-qty","data-qtd"]);
     if(raw!=="" && isFinite(Number(raw))) return Number(raw);
-
-    // O carrinho atual mostra a quantidade como texto entre "-" e "+".
     var nodes=item && item.querySelectorAll ? item.querySelectorAll("*") : [];
     for(var i=0;i<nodes.length;i++){
       var txt=String(nodes[i].textContent||"").replace(/\s+/g," ").trim();
-      var m=txt.match(/(?:^|\s)[−-]\s*(\d+)\s*\+(?:\s|$)/);
+      var m=txt.match(/^[−-]\s*(\d+)\s*\+$/);
       if(m) return Number(m[1]);
     }
     var whole=String(item && item.textContent||"").replace(/\s+/g," ").trim();
-    var m2=whole.match(/(?:^|\s)[−-]\s*(\d+)\s*\+(?:\s|$)/);
-    if(m2) return Number(m2[1]);
-    return null;
+    var m2=whole.match(/[−-]\s*(\d+)\s*\+/);
+    return m2 ? Number(m2[1]) : null;
   }
+
   function getRow(item){
     var key=getKey(item), variant=getVariant(item);
     if(!key) return null;
     var candidates=rows.filter(function(r){return r.product_key===key && r.active!==false;});
     if(!candidates.length) return null;
     if(variant){
-      var exact=candidates.find(function(r){return norm(r.variant)===norm(variant) || sizeNorm(r.variant)===sizeNorm(variant);});
+      var exact=candidates.find(function(r){
+        return sizeNorm(r.variant)===sizeNorm(variant) || norm(r.variant)===norm(variant);
+      });
       if(exact) return exact;
     }
     if(candidates.length===1) return candidates[0];
@@ -153,67 +156,13 @@
   }
 
   function resolveContext(btn){
-    var cur=btn, depth=0, best=null;
-    while(cur && depth++<12){
-      var row=getRow(cur);
-      if(row){
-        var qty=getQty(cur);
-        if(qty!==null) return {item:cur,row:row,qty:qty};
-        if(!best) best={item:cur,row:row,qty:null};
-      }
-      cur=cur.parentElement;
-    }
-    return best;
+    var item=cartItemFor(btn);
+    if(!item) return null;
+    var row=getRow(item);
+    if(!row) return null;
+    return {item:item,row:row,qty:getQty(item)};
   }
-  function toast(msg){
-    var old=document.getElementById("uzi-stock-toast");
-    if(old) old.remove();
-    var d=document.createElement("div");
-    d.id="uzi-stock-toast";
-    d.textContent=msg;
-    d.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483647;background:#111;color:#fff;border:1px solid #d4af37;border-radius:10px;padding:11px 16px;font:600 13px Arial,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.35);";
-    document.body.appendChild(d);
-    setTimeout(function(){d.remove();},2200);
-  }
-  function isPlus(btn){
-    var t=norm(btn.textContent);
-    var a=norm(btn.getAttribute("aria-label"));
-    var title=norm(btn.getAttribute("title"));
-    return t==="+" || /aument|increment|adicionar/.test(a+" "+title);
-  }
-  function decorate(){
-    document.querySelectorAll("button").forEach(function(btn){
-      if(!isPlus(btn)) return;
-      var ctx=resolveContext(btn);
-      if(!ctx) return;
-      var item=ctx.item, row=ctx.row;
-      var qty=ctx.qty!==null?ctx.qty:getQty(item), stock=Number(row.stock||0);
-      var atMax=qty!==null && qty>=stock;
-      if(stock<=0 || atMax){
-        btn.disabled=true;
-        btn.setAttribute("aria-disabled","true");
-        btn.title=stock<=0 ? "Esgotado" : "Máximo disponível: "+stock;
-        btn.style.opacity=".45";
-        btn.style.cursor="not-allowed";
-      }else{
-        btn.disabled=false;
-        btn.removeAttribute("aria-disabled");
-        btn.removeAttribute("title");
-        btn.style.opacity="";
-        btn.style.cursor="";
-      }
-      if(atMax && stock>0 && !item.querySelector(".uzi-stock-limit-msg")){
-        var m=document.createElement("div");
-        m.className="uzi-stock-limit-msg";
-        m.textContent="Máximo disponível: "+stock;
-        m.style.cssText="font-size:11px;color:#aaa;margin-top:3px;";
-        item.appendChild(m);
-      }else if(!atMax){
-        var old=item.querySelector(".uzi-stock-limit-msg");
-        if(old) old.remove();
-      }
-    });
-  }
+
   async function load(){
     try{
       var u=SUPABASE_URL+"/rest/v1/inventory_items?select=product_key,variant,stock,active&active=eq.true";
