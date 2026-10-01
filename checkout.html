@@ -34,7 +34,7 @@
 <div style="display:flex;justify-content:space-between;margin-top:20px"><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
 <div style="display:flex;justify-content:space-between;margin-top:10px"><span>Frete</span><strong id="freight">A calcular</strong></div>
 <hr style="border-color:#292929;margin:18px 0">
-<div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div>
+<div style="display:flex;justify-content:space-between"><span>Total</span><span class="total" id="total">R$ 0,00</span></div><div style="display:flex;justify-content:space-between;margin-top:8px;color:#8be28b;font-size:13px"><span>💳 No Pix (25% OFF)</span><strong id="pixTotal">R$ 0,00</strong></div>
 <button class="btn" style="margin-top:20px" id="continue" disabled>Continuar para pagamento</button><div id="paymentSection" style="display:none;margin-top:22px"><hr style="border-color:#292929;margin:22px 0"><h2 style="font-size:17px">Pagamento seguro</h2><p class="muted" style="font-size:13px">Escolha Pix ou cartão. O pagamento é processado pelo Mercado Pago.</p><div id="paymentBrick_container"></div><div id="pixResult" style="display:none;margin-top:16px;padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515"><h3 style="margin:0 0 10px;font-size:16px">Pague com Pix</h3><div id="pixStatus" class="muted" style="font-size:13px;margin-bottom:12px">Aguardando geração do Pix...</div><img id="pixQr" alt="QR Code Pix" style="display:none;width:220px;height:220px;max-width:100%;background:#fff;padding:8px;border-radius:8px;margin:0 auto 14px"><div id="pixCopyWrap" style="display:none"><label style="display:block;font-size:12px;color:#bbb;margin-bottom:6px">Pix Copia e Cola</label><div style="display:flex;gap:8px"><input id="pixCopy" readonly style="flex:1;min-width:0;padding:12px;border-radius:8px;border:1px solid #333;background:#0f0f0f;color:#fff;font-size:11px"><button type="button" class="btn" id="pixCopyBtn" style="width:auto;padding:12px 16px">Copiar</button></div></div></div><div class="error" id="paymentError"></div><div class="payment-status" id="paymentStatus"><strong id="paymentStatusTitle">Aguardando pagamento</strong><span class="muted" id="paymentStatusText">Estamos aguardando a confirmação do Mercado Pago.</span></div></div>
 </aside>
 </div>
@@ -87,6 +87,7 @@ function readCart(){
   candidates.sort((a,b)=>b.score-a.score);
   return candidates[0]?.arr||[];
 }
+const PIX_DISCOUNT=0.25;
 let cart=readCart(),subtotal=0,shipping=null;
 const itemsEl=document.getElementById("items");
 if(!cart.length){itemsEl.textContent="Seu carrinho está vazio."}else{
@@ -95,6 +96,7 @@ if(!cart.length){itemsEl.textContent="Seu carrinho está vazio."}else{
 }
 document.getElementById("subtotal").textContent=money(subtotal);
 document.getElementById("total").textContent=money(subtotal);
+document.getElementById("pixTotal").textContent=money(subtotal*(1-PIX_DISCOUNT));
 let cepTimer;
 async function lookupCep(cep){
   const status=document.getElementById("cepStatus");
@@ -129,7 +131,7 @@ document.getElementById("quote").onclick=async()=>{
   const res=await fetch(SHIPPING_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({destination_cep:cep,items:apiItems})});
   const data=await res.json();if(!res.ok)throw new Error(data.error||"Erro ao calcular");
   el.innerHTML=(data.quotes||[]).map((q,n)=>'<div class="option" data-i="'+n+'"><strong>'+q.name+'</strong><br><span class="muted">'+(q.company||"")+(q.delivery_time?" · "+q.delivery_time+" dias úteis":"")+'</span><br><strong>'+money(q.price)+'</strong></div>').join("")||'<span class="muted">Nenhuma opção disponível.</span>';
-  el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("continue").disabled=false});
+  el.querySelectorAll(".option").forEach(o=>o.onclick=()=>{el.querySelectorAll(".option").forEach(x=>x.style.borderColor="#333");o.style.borderColor="#d4af37";shipping=data.quotes[Number(o.dataset.i)];document.getElementById("freight").textContent=money(shipping.price);document.getElementById("total").textContent=money(subtotal+shipping.price);document.getElementById("pixTotal").textContent=money(subtotal*(1-PIX_DISCOUNT)+Number(shipping.price||0));document.getElementById("continue").disabled=false});
  }catch(e){el.innerHTML='<span class="error">'+e.message+"</span>"}
 };
 function startPaymentStatusPolling(orderId){
@@ -215,6 +217,7 @@ async function openPayment(){
               items:apiItems,
               customer,
               shipping_amount:Number(shipping.price||0),
+              pix_discount_percent:PIX_DISCOUNT*100,
               shipping:{
                 cep:customer.cep,
                 method:shipping.name||"",
@@ -226,7 +229,7 @@ async function openPayment(){
                 city:customer.cityState.split("/")[0]?.trim()||"",
                 state:customer.cityState.split("/")[1]?.trim()||""
               },
-              payment:formData
+              payment:{...formData, method:selectedPaymentMethod}
             };
             const res=await fetch(API+"/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
             const data=await res.json();
