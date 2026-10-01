@@ -32,7 +32,7 @@ jobs:
               s = s.replace("</body>", inventory_script + "</body>")
 
           cart_stock_marker = "uzi18k-cart-stock-guard"
-          cart_stock_script = '<script id="uzi18k-cart-stock-guard" src="cart-stock-guard.js?v=5"></script>'
+          cart_stock_script = '<script id="uzi18k-cart-stock-guard" src="cart-stock-guard.js?v=6"></script>'
           old_cart_stock = re.compile(r'<script id="uzi18k-cart-stock-guard"[^>]*></script>')
           if cart_stock_marker not in s:
               s = s.replace("</body>", cart_stock_script + "</body>")
