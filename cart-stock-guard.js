@@ -40,7 +40,7 @@
     if(n.includes("pulseira veneziana"))return "pulseira-veneziana-1mm";
     if(n.includes("pulseira cadeado"))return "pulseira-cadeado-2-8mm";
     if(n.includes("pulseira piastrine"))return "pulseira-piastrini-3mm";
-    if(n.includes("corrente grumet"))return "grumet-3mm";
+    if(n.includes("corrente grumet"))return "pulseira-grumet-2-5mm";
     if(n.includes("corrente cadeado"))return "cadeado-3mm";
     if(n.includes("corrente cartier"))return "cartier-2mm";
     if(n.includes("corrente duplix"))return "duplix-3mm";
