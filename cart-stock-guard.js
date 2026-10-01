@@ -2,6 +2,7 @@
 (function(){
   "use strict";
   var SUPABASE_URL="https://meulxqleymbjkedaagby.supabase.co";
+  var SUPABASE_KEY="sb_publishable_8UM9No_56gY8ArX0yb1MmA_XVH-V-mV";
   var rows=null;
 
   var map={
@@ -58,7 +59,7 @@
   }
   async function load(){
     try{
-      var s=await fetch(SUPABASE_URL+"/rest/v1/inventory_items?select=product_key,variant,stock,active&active=eq.true");
+      var s=await fetch(SUPABASE_URL+"/rest/v1/inventory_items?select=product_key,variant,stock,active&active=eq.true",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
       if(!s.ok)throw 0;
       rows=await s.json();
     }catch(e){rows=[];console.warn("[UZI18K] stock guard load failed");}
