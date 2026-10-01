@@ -48,6 +48,14 @@ jobs:
           else:
               s = old_cadeado.sub(cadeado_script, s)
 
+          grumet_marker = "uzi18k-corrente-grumet-size-fix"
+          grumet_script = '<script id="uzi18k-corrente-grumet-size-fix" src="corrente-grumet-size-fix.js?v=1"></script>'
+          old_grumet = re.compile(r'<script id="uzi18k-corrente-grumet-size-fix"[^>]*></script>')
+          if grumet_marker not in s:
+              s = s.replace("</body>", grumet_script + "</body>")
+          else:
+              s = old_grumet.sub(grumet_script, s)
+
           cart_stock_marker = "uzi18k-cart-stock-guard"
           cart_stock_script = '<script id="uzi18k-cart-stock-guard" src="cart-stock-guard.js?v=12"></script>'
           old_cart_stock = re.compile(r'<script id="uzi18k-cart-stock-guard"[^>]*></script>')
