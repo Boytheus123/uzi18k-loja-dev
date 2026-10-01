@@ -45,7 +45,22 @@
     "corrente elo português 2mm":"elo-portugues-2mm",
     "corrente piastrini 2mm":"piastrini-2mm",
     "escapulário espírito santo e cruz":"escapulario-espirito-santo-cruz",
-    "escapulário nossa senhora das graças e cristo diamantado":"escapulario-nossa-senhora-cristo"
+    "escapulário nossa senhora das graças e cristo diamantado":"escapulario-nossa-senhora-cristo",
+    "corrente grumet":"grumet-3mm",
+    "grumet 3mm":"grumet-3mm",
+    "corrente cadeado":"cadeado-3mm",
+    "corrente cartier":"cartier-2mm",
+    "corrente duplix":"duplix-3mm",
+    "corrente piastrini":"piastrini-2mm",
+    "corrente veneziana":"veneziana-1mm",
+    "corrente elo portugues":"elo-portugues-2mm",
+    "corrente cordao baiano":"cordao-baiano-3mm",
+    "pulseira grumet":"pulseira-grumet-2-5mm",
+    "pulseira cartier":"pulseira-cartier-2mm",
+    "pulseira duplix":"pulseira-duplix-3mm",
+    "pulseira veneziana":"pulseira-veneziana-1mm",
+    "pulseira cadeado":"pulseira-cadeado-2-8mm",
+    "pulseira piastrine":"pulseira-piastrini-3mm"
   };
 
   function norm(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\\s+/g," ").trim();}
@@ -55,7 +70,8 @@
   }
   function keyFromText(t){
     var n=norm(t);
-    for(var name in nameMap){ if(n.indexOf(norm(name))>=0) return nameMap[name]; }
+    var names=Object.keys(nameMap).sort(function(a,b){return b.length-a.length;});
+    for(var i=0;i<names.length;i++){ if(n.indexOf(norm(names[i]))>=0) return nameMap[names[i]]; }
     return "";
   }
   function findAttr(el,names){
@@ -84,7 +100,13 @@
       }
       cur=cur.parentElement;
     }
-    return keyFromText(item && item.textContent);
+    cur=item; depth=0;
+    while(cur && depth++<8){
+      var byText=keyFromText(cur.textContent||"");
+      if(byText) return byText;
+      cur=cur.parentElement;
+    }
+    return "";
   }
   function getVariant(item){
     var cur=item, depth=0;
