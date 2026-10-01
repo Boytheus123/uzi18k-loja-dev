@@ -14,7 +14,7 @@
     "produto-corrente-duplix":"duplix-3mm",
     "produto-cordao-entrelacado":"cordao-baiano-3mm",
     "produto-corrente-veneziana":"veneziana-1mm",
-    "produto-corrente-grumet":"grumet-3mm",
+    "produto-corrente-grumet":"pulseira-grumet-2-5mm",
     "produto-corrente-cadeado":"cadeado-3mm",
     "produto-corrente-cartier":"cartier-2mm",
     "produto-corrente-elo-portugues":"elo-portugues-2mm",
