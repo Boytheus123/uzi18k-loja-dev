@@ -15,7 +15,7 @@
     first.classList.remove('is-sold-out');
     first.removeAttribute('aria-disabled');
     first.removeAttribute('title');
-    first.classList.remove('is-selected');
+    first.classList.add('is-selected');
     for(var i=1;i<sizes.length;i++){
       sizes[i].style.display='none';
       sizes[i].classList.remove('is-selected');
