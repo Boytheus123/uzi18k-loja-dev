@@ -64,6 +64,25 @@
       rows=await s.json();
     }catch(e){rows=[];console.warn("[UZI18K] stock guard load failed");}
   }
+  function refreshButtons(){
+    if(!rows || !Array.isArray(window.__UZI18K_CART)) return;
+    document.querySelectorAll('button[data-v108-qty="1"]').forEach(function(b){
+      var idx=Number(b.getAttribute("data-v108-index")),cart=window.__UZI18K_CART;
+      if(!isFinite(idx)||!cart[idx]) return;
+      var item=cart[idx],k=key(item),v=size(item.size);
+      var matches=rows.filter(function(r){return r.product_key===k&&r.active!==false;});
+      var row=v?matches.find(function(r){return size(r.variant)===v;}):matches[0];
+      if(!row)return;
+      var stock=Number(row.stock||0),qty=Number(item.qty||0),blocked=stock<=0||qty>=stock;
+      b.disabled=blocked;
+      b.setAttribute("aria-disabled",String(blocked));
+      b.style.pointerEvents=blocked?"none":"auto";
+      b.style.opacity=blocked?".45":"";
+      b.style.cursor=blocked?"not-allowed":"";
+      b.title=stock<=0?"Produto esgotado.":(blocked?"Máximo disponível: "+stock:"");
+    });
+  }
+
   document.addEventListener("click",function(e){
     var b=e.target.closest&&e.target.closest('button[data-v108-qty="1"]');
     if(!b)return;
@@ -83,7 +102,11 @@
     if(qty>=stock){
       e.preventDefault();e.stopImmediatePropagation();
       toast(stock>0?"Máximo disponível: "+stock:"Produto esgotado.");
+      refreshButtons();
+    }else{
+      setTimeout(refreshButtons,0);
     }
   },true);
   load();
+  setInterval(refreshButtons,250);
 })();
