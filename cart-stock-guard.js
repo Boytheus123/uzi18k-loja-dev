@@ -145,11 +145,25 @@
     var candidates=rows.filter(function(r){return r.product_key===key && r.active!==false;});
     if(!candidates.length) return null;
     if(variant){
-      var exact=candidates.find(function(r){return norm(r.variant)===norm(variant);});
+      var exact=candidates.find(function(r){return norm(r.variant)===norm(variant) || sizeNorm(r.variant)===sizeNorm(variant);});
       if(exact) return exact;
     }
     if(candidates.length===1) return candidates[0];
     return null;
+  }
+
+  function resolveContext(btn){
+    var cur=btn, depth=0, best=null;
+    while(cur && depth++<12){
+      var row=getRow(cur);
+      if(row){
+        var qty=getQty(cur);
+        if(qty!==null) return {item:cur,row:row,qty:qty};
+        if(!best) best={item:cur,row:row,qty:null};
+      }
+      cur=cur.parentElement;
+    }
+    return best;
   }
   function toast(msg){
     var old=document.getElementById("uzi-stock-toast");
@@ -170,9 +184,10 @@
   function decorate(){
     document.querySelectorAll("button").forEach(function(btn){
       if(!isPlus(btn)) return;
-      var item=itemFor(btn), row=getRow(item);
-      if(!row) return;
-      var qty=getQty(item), stock=Number(row.stock||0);
+      var ctx=resolveContext(btn);
+      if(!ctx) return;
+      var item=ctx.item, row=ctx.row;
+      var qty=ctx.qty!==null?ctx.qty:getQty(item), stock=Number(row.stock||0);
       var atMax=qty!==null && qty>=stock;
       if(stock<=0 || atMax){
         btn.disabled=true;
@@ -213,9 +228,10 @@
   document.addEventListener("click",function(e){
     var btn=e.target.closest && e.target.closest("button");
     if(!btn || !isPlus(btn) || !loaded) return;
-    var item=itemFor(btn), row=getRow(item);
-    if(!row) return;
-    var stock=Number(row.stock||0), qty=getQty(item);
+    var ctx=resolveContext(btn);
+    if(!ctx) return;
+    var item=ctx.item, row=ctx.row;
+    var stock=Number(row.stock||0), qty=ctx.qty!==null?ctx.qty:getQty(item);
     if(stock<=0 || (qty!==null && qty>=stock)){
       e.preventDefault();
       e.stopImmediatePropagation();
