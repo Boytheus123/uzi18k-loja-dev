@@ -83,9 +83,12 @@
   }
   function itemFor(el){
     var cur=el, depth=0;
-    while(cur && depth++<8){
+    while(cur && depth++<12){
       if(cur.matches && cur.matches("[data-product-key],[data-product],[data-key],[data-variant]")) return cur;
-      if(cur.querySelector && cur.querySelector("input[type=number],input[data-quantity],button")) return cur;
+      var txt=String(cur.textContent||"").replace(/\s+/g," ").trim();
+      var hasQty=/[−-]\s*\d+\s*\+/.test(txt);
+      var hasRemove=/\bremover\b/i.test(txt);
+      if((hasQty||hasRemove) && txt.length>20) return cur;
       cur=cur.parentElement;
     }
     return el.parentElement;
@@ -123,6 +126,17 @@
     if(input && input.value!=="" && isFinite(Number(input.value))) return Number(input.value);
     var raw=findAttr(item,["data-quantity","data-qty","data-qtd"]);
     if(raw!=="" && isFinite(Number(raw))) return Number(raw);
+
+    // O carrinho atual mostra a quantidade como texto entre "-" e "+".
+    var nodes=item && item.querySelectorAll ? item.querySelectorAll("*") : [];
+    for(var i=0;i<nodes.length;i++){
+      var txt=String(nodes[i].textContent||"").replace(/\s+/g," ").trim();
+      var m=txt.match(/(?:^|\s)[−-]\s*(\d+)\s*\+(?:\s|$)/);
+      if(m) return Number(m[1]);
+    }
+    var whole=String(item && item.textContent||"").replace(/\s+/g," ").trim();
+    var m2=whole.match(/(?:^|\s)[−-]\s*(\d+)\s*\+(?:\s|$)/);
+    if(m2) return Number(m2[1]);
     return null;
   }
   function getRow(item){
