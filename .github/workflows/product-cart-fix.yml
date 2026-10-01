@@ -32,6 +32,14 @@ jobs:
           if inventory_marker not in s:
               s = s.replace("</body>", inventory_script + "</body>")
 
+          veneziana_marker = "uzi18k-pulseira-veneziana-size-fix"
+          veneziana_script = '<script id="uzi18k-pulseira-veneziana-size-fix" src="pulseira-veneziana-size-fix.js?v=1"></script>'
+          old_veneziana = re.compile(r'<script id="uzi18k-pulseira-veneziana-size-fix"[^>]*></script>')
+          if veneziana_marker not in s:
+              s = s.replace("</body>", veneziana_script + "</body>")
+          else:
+              s = old_veneziana.sub(veneziana_script, s)
+
           cart_stock_marker = "uzi18k-cart-stock-guard"
           cart_stock_script = '<script id="uzi18k-cart-stock-guard" src="cart-stock-guard.js?v=12"></script>'
           old_cart_stock = re.compile(r'<script id="uzi18k-cart-stock-guard"[^>]*></script>')
