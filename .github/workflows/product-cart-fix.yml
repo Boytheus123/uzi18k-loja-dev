@@ -40,6 +40,14 @@ jobs:
           else:
               s = old_veneziana.sub(veneziana_script, s)
 
+          cadeado_marker = "uzi18k-pulseira-cadeado-size-fix"
+          cadeado_script = '<script id="uzi18k-pulseira-cadeado-size-fix" src="pulseira-cadeado-size-fix.js?v=1"></script>'
+          old_cadeado = re.compile(r'<script id="uzi18k-pulseira-cadeado-size-fix"[^>]*></script>')
+          if cadeado_marker not in s:
+              s = s.replace("</body>", cadeado_script + "</body>")
+          else:
+              s = old_cadeado.sub(cadeado_script, s)
+
           cart_stock_marker = "uzi18k-cart-stock-guard"
           cart_stock_script = '<script id="uzi18k-cart-stock-guard" src="cart-stock-guard.js?v=12"></script>'
           old_cart_stock = re.compile(r'<script id="uzi18k-cart-stock-guard"[^>]*></script>')
