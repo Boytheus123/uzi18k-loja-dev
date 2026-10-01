@@ -23,7 +23,10 @@
     }
   }
   fix();
-  setTimeout(fix,300);
-  setTimeout(fix,1000);
-  setTimeout(fix,2000);
+  var tries=0;
+  var timer=setInterval(function(){
+    fix();
+    if(++tries>=100)clearInterval(timer);
+  },300);
+  window.addEventListener('hashchange',function(){setTimeout(fix,50);});
 })();
