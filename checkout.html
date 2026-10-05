@@ -187,7 +187,7 @@ async function openPayment(){
   document.getElementById("paymentSection").style.display="block";
   try{
     if(paymentBrickController){await paymentBrickController.unmount();paymentBrickController=null}
-    const mp=new MercadoPago("APP_USR-95cdfd02-dbbd-492e-bedb-442ef397d4d0");
+    const mp=new MercadoPago("APP_USR-2b1ed92a-cfc5-43fe-8d2b-bf8aa3396e95");
     const bricksBuilder=mp.bricks();
     paymentBrickController=await bricksBuilder.create("payment","paymentBrick_container",{
       initialization:{
