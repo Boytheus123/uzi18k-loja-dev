@@ -88,7 +88,9 @@ function readCart(){
   return candidates[0]?.arr||[];
 }
 const isTestPix=new URLSearchParams(location.search).get("test")==="pix";
-let cart=isTestPix?[{product_key:"teste-pix-uzi18k",name:"TESTE PIX UZI18K",price:1,quantity:1}]:readCart(),subtotal=0,shipping=null,pixSubtotal=0,catalogQuote=null;
+// Compatibilidade temporária: versões antigas do teste podem enviar a chave teste-pix-zik.
+const TEST_PIX_KEY="teste-pix-uzi18k";
+let cart=isTestPix?[{product_key:TEST_PIX_KEY,name:"TESTE PIX UZI18K",price:1,quantity:1}]:readCart(),subtotal=0,shipping=null,pixSubtotal=0,catalogQuote=null;
 const itemsEl=document.getElementById("items");
 if(!cart.length){itemsEl.textContent="Seu carrinho está vazio."}else{
  itemsEl.innerHTML=cart.map(i=>{const q=Number(i.quantity||i.qty||i.quantidade||1),p=Number(i.price??i.preco??i.unit_price??i.valor??0);return '<div style="padding:9px 0;border-bottom:1px solid #292929">'+(i.name||i.product_name||i.title||i.nome||"Produto")+' <span class="muted">× '+q+'</span><div>'+money(p*q)+'</div></div>'}).join("");
